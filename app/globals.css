@@ -1,8 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
+  --brand-white: #0f172a;
+  --brand-white-glow: rgba(15, 23, 42, 0.04);
+  --active-emerald: #059669;
+  --active-emerald-glow: rgba(5, 150, 105, 0.08);
+  --warning-amber: #d97706;
+  --warning-amber-glow: rgba(217, 119, 6, 0.08);
+  --danger-coral: #dc2626;
+  --danger-glow: rgba(220, 38, 38, 0.08);
+  --text-muted: #64748b;
 }
 
 @theme inline {
@@ -19,8 +30,206 @@
   }
 }
 
+
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  scroll-behavior: smooth;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  letter-spacing: -0.03em;
+}
+
+/* ── Panels ── */
+.glass-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(15, 23, 42, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.glass-panel:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.08);
+}
+
+.premium-glass-card {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 24px;
+  box-shadow: 0 10px 30px -10px rgba(15, 23, 42, 0.08), 
+              0 1px 1px 0 rgba(255, 255, 255, 0.6) inset,
+              0 0 0 1px rgba(15, 23, 42, 0.03);
+  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.premium-glass-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.12),
+              0 1px 1px 0 rgba(255, 255, 255, 0.8) inset,
+              0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
+/* ── Glow Borders ── */
+.glow-brand   { box-shadow: 0 0 12px var(--brand-white-glow);         border-color: #0f172a; }
+.glow-success { box-shadow: 0 0 12px var(--active-emerald-glow);      border-color: var(--active-emerald); }
+.glow-warning { box-shadow: 0 0 12px var(--warning-amber-glow);       border-color: var(--warning-amber); }
+
+/* ── Buttons ── */
+.btn-primary {
+  background: #0f172a;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 8px;
+  border: 1px solid #0f172a;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+.btn-primary:hover {
+  background: #1e293b;
+  border-color: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+}
+.btn-primary:active { transform: translateY(1px); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-secondary:hover {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: var(--text-muted);
+}
+
+.btn-danger {
+  background: rgba(220, 38, 38, 0.05);
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  color: var(--danger-coral);
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-danger:hover {
+  background: rgba(220, 38, 38, 0.1);
+  border-color: rgba(220, 38, 38, 0.4);
+  box-shadow: 0 0 12px var(--danger-glow);
+}
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ── Status Badges ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: 1px solid transparent;
+}
+.status-available  { background: rgba(5,150,105,0.08);  color: var(--active-emerald); border-color: rgba(5,150,105,0.2); }
+.status-booked     { background: rgba(217,119,6,0.08);   color: var(--warning-amber);  border-color: rgba(217,119,6,0.2); }
+.status-maintenance{ background: rgba(37,99,235,0.08);   color: #2563eb;               border-color: rgba(37,99,235,0.2); }
+.status-inactive   { background: rgba(220,38,38,0.08);   color: var(--danger-coral);   border-color: rgba(220,38,38,0.2); }
+
+/* Pulsing badge for live active rides */
+.status-active-live {
+  background: rgba(217,119,6,0.08);
+  color: var(--warning-amber);
+  border-color: rgba(217,119,6,0.3);
+  animation: pulseBorder 2s ease-in-out infinite;
+}
+@keyframes pulseBorder {
+  0%,100% { border-color: rgba(217,119,6,0.2); box-shadow: 0 0 0 0 rgba(217,119,6,0); }
+  50%     { border-color: rgba(217,119,6,0.5); box-shadow: 0 0 8px 2px rgba(217,119,6,0.08); }
+}
+
+/* ── Forms ── */
+.form-input {
+  background: #ffffff;
+  border: 1px solid var(--card-border);
+  color: var(--foreground);
+  padding: 10px 14px;
+  border-radius: 8px;
+  outline: none;
+  transition: all 0.2s ease;
+  width: 100%;
+}
+.form-input:focus {
+  border-color: var(--active-emerald);
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.06);
+}
+.form-label {
+  display: block;
+  font-size: 0.775rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Modal Overlay (replaces window.confirm/alert) ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.2s ease forwards;
+}
+
+/* ── Animations ── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in  { animation: fadeIn  0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-scale-in { animation: scaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ── Layouts ── */
+.grid-cols-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+@media (min-width: 1024px) {
+  .grid-cols-layout { grid-template-columns: 320px 1fr; }
+}
+
+@keyframes drawPath {
+  to {
+    stroke-dashoffset: 0;
+  }
 }

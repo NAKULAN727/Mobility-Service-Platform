@@ -1,0 +1,125 @@
+datasource db {
+  provider = "postgresql"
+}
+
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// --- ENUMS ---
+
+enum VehicleType {
+  SEDAN
+  SUV
+  LUXURY
+  VAN
+  HATCHBACK
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BOOKED
+  MAINTENANCE
+  OUT_OF_SERVICE
+  DECOMMISSIONED
+}
+
+enum BookingType {
+  DRIVER_ONLY
+  VEHICLE_AND_DRIVER
+}
+
+enum BookingStatus {
+  DRAFT
+  REQUESTED
+  MATCHING
+  ACCEPTED
+  ARRIVING
+  ARRIVED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum PaymentMethod {
+  UPI
+  CARD
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+// --- MODELS ---
+
+model Vehicle {
+  id                 String             @id @default(uuid())
+  vehicleNumber      String             @unique
+  vehicleType        VehicleType
+  model              String
+  seatingCapacity    Int
+  availabilityStatus AvailabilityStatus @default(AVAILABLE)
+  bookings           Booking[]
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([availabilityStatus, vehicleType])
+}
+
+model Location {
+  id                  String   @id @default(uuid())
+  pickupLocation      String
+  destinationLocation String
+  distance            Float    // in kilometers
+  estimatedDuration   Int      // in minutes
+  booking             Booking?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Booking {
+  id              String        @id @default(uuid())
+  customerId      String
+  driverId        String?
+  vehicleId       String?
+  bookingType     BookingType
+  locationId      String        @unique
+  bookingDate     DateTime      @db.Date
+  bookingTime     String        // Time of day format: "HH:MM:SS" or "HH:MM"
+  fareAmount      Decimal       @db.Decimal(10, 2)
+  bookingStatus   BookingStatus @default(REQUESTED)
+  otpCode         String        @default("000000")
+  actualStartTime DateTime?
+  actualEndTime   DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  vehicle  Vehicle?  @relation(fields: [vehicleId], references: [id], onDelete: Restrict)
+  location Location  @relation(fields: [locationId], references: [id], onDelete: Cascade)
+  payment  Payment?
+
+  @@index([customerId])
+  @@index([driverId])
+  @@index([bookingStatus])
+  @@index([bookingDate])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  bookingId     String        @unique
+  amount        Decimal       @db.Decimal(10, 2)
+  paymentMethod PaymentMethod
+  paymentStatus PaymentStatus @default(PENDING)
+  transactionId String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([paymentStatus])
+}

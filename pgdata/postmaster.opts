@@ -1,0 +1,1 @@
+C:/Program Files/PostgreSQL/18/bin/postgres.exe "-D" "d:\mobility_service\Mobility-Service-Platform\pgdata" "-p" "5433"
