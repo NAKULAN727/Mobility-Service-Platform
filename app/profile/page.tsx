@@ -46,8 +46,8 @@ export default function ProfilePage() {
 
   // Apollo mutations
   const [updateProfileMutation, { loading: profileUpdating }] = useMutation(UPDATE_PROFILE, {
-    onCompleted: async () => {
-      await refreshUser();
+    onCompleted: (data) => {
+      refreshUser(data.updateProfile);
       setProfileSuccess("Profile updated successfully.");
       setTimeout(() => setProfileSuccess(""), 4000);
     },
