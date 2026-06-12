@@ -1,7 +1,6 @@
-import { PrismaClient, VehicleType, AvailabilityStatus, BookingType, BookingStatus, PaymentMethod, PaymentStatus, Role, VerificationStatus } from "@prisma/client";
-import bcrypt from "bcryptjs";
-
-const prisma = new PrismaClient();
+import { VehicleType, AvailabilityStatus, ServiceType, BookingStatus, PaymentMethod, PaymentStatus, Role, VerificationStatus, DriverType } from "@prisma/client";
+import * as bcrypt from "bcryptjs";
+import prisma from "../lib/prisma";
 
 async function main() {
   console.log("Cleaning up existing database records...");
@@ -54,6 +53,8 @@ async function main() {
           id: "driver-profile-id-123",
           licenseNumber: "DL-9876543210",
           experienceYears: 6,
+          driverType: DriverType.DRIVER_WITH_VEHICLE,
+          ownsVehicle: true,
           availabilityStatus: true,
           verificationStatus: VerificationStatus.PENDING,
         },
@@ -64,9 +65,10 @@ async function main() {
   console.log("Seeding Vehicles...");
   const vehicle1 = await prisma.vehicle.create({
     data: {
-      vehicleNumber: "TX-9988-B",
+      registrationNumber: "TX-9988-B",
+      make: "Toyota",
       vehicleType: VehicleType.SEDAN,
-      model: "Toyota Camry Hybrid 2024",
+      model: "Camry Hybrid 2024",
       seatingCapacity: 4,
       availabilityStatus: AvailabilityStatus.AVAILABLE,
     },
@@ -74,9 +76,10 @@ async function main() {
 
   const vehicle2 = await prisma.vehicle.create({
     data: {
-      vehicleNumber: "SUV-1122-C",
+      registrationNumber: "SUV-1122-C",
+      make: "Tesla",
       vehicleType: VehicleType.SUV,
-      model: "Tesla Model X 2023",
+      model: "Model X 2023",
       seatingCapacity: 6,
       availabilityStatus: AvailabilityStatus.BOOKED,
     },
@@ -84,9 +87,10 @@ async function main() {
 
   const vehicle3 = await prisma.vehicle.create({
     data: {
-      vehicleNumber: "LX-7777-A",
+      registrationNumber: "LX-7777-A",
+      make: "Mercedes-Benz",
       vehicleType: VehicleType.LUXURY,
-      model: "Mercedes-Benz S-Class 2024",
+      model: "S-Class 2024",
       seatingCapacity: 4,
       availabilityStatus: AvailabilityStatus.MAINTENANCE,
     },
@@ -94,9 +98,10 @@ async function main() {
 
   const vehicle4 = await prisma.vehicle.create({
     data: {
-      vehicleNumber: "VN-5544-D",
+      registrationNumber: "VN-5544-D",
+      make: "Ford",
       vehicleType: VehicleType.VAN,
-      model: "Ford Transit Custom 2022",
+      model: "Transit Custom 2022",
       seatingCapacity: 12,
       availabilityStatus: AvailabilityStatus.AVAILABLE,
     },
@@ -137,12 +142,12 @@ async function main() {
       customerId: "cust-uuid-001",
       driverId: "driver-uuid-101",
       vehicleId: vehicle1.id,
-      bookingType: BookingType.VEHICLE_AND_DRIVER,
+      serviceType: ServiceType.CAR_WITH_DRIVER,
       locationId: location1.id,
       bookingDate: new Date("2026-06-10T00:00:00Z"),
       bookingTime: "08:30:00",
       fareAmount: 85.50,
-      bookingStatus: BookingStatus.COMPLETED,
+      bookingStatus: BookingStatus.TRIP_COMPLETED,
     },
   });
 
@@ -152,12 +157,12 @@ async function main() {
       customerId: "cust-uuid-002",
       driverId: "driver-uuid-102",
       vehicleId: null,
-      bookingType: BookingType.DRIVER_ONLY,
+      serviceType: ServiceType.DRIVER_ONLY,
       locationId: location2.id,
       bookingDate: new Date("2026-06-12T00:00:00Z"),
       bookingTime: "14:00:00",
       fareAmount: 35.00,
-      bookingStatus: BookingStatus.ACTIVE,
+      bookingStatus: BookingStatus.TRIP_STARTED,
     },
   });
 
@@ -167,7 +172,7 @@ async function main() {
       customerId: "cust-uuid-003",
       driverId: null,
       vehicleId: vehicle4.id,
-      bookingType: BookingType.VEHICLE_AND_DRIVER,
+      serviceType: ServiceType.CAR_WITH_DRIVER,
       locationId: location3.id,
       bookingDate: new Date("2026-06-13T00:00:00Z"),
       bookingTime: "18:15:00",

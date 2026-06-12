@@ -1,5 +1,7 @@
 export interface OverallStats {
   totalBookings: number;
+  driverOnlyBookings?: number;
+  carAndDriverBookings?: number;
   completedRides: number;
   cancelledRides: number;
   totalRevenue: number;
@@ -15,6 +17,8 @@ export interface BookingTrend {
 export interface PeakHour {
   period: string;
   timeRange: string;
+  time?: string;
+  demand?: number;
 }
 
 export interface PopularDestination {

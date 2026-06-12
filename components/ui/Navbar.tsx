@@ -15,10 +15,20 @@ export default function Navbar({ activePath }: NavbarProps) {
   const active = activePath ?? pathname;
   const { user, logout, loading } = useAuth();
 
-  const navLinks = [
-    { href: "/bookings", label: "My Rides" },
-    { href: "/fare-estimator", label: "Fare Calculator" },
+  const baseNavLinks = [
+    { href: "/", label: "Home", hideFromDriver: true },
+    { href: "/ai-assistant", label: "AI Assistant", requiresCustomer: true },
+    { href: "/ai-assistant?prompt=" + encodeURIComponent("I need a driver for my own car."), label: "Drive My Car", requiresCustomer: true },
+    { href: "/ai-assistant?prompt=" + encodeURIComponent("I need to book a complete ride with a car and driver."), label: "Car + Driver", requiresCustomer: true },
+    { href: "/bookings", label: "My Trips", requiresCustomer: true },
+    { href: "/analytics", label: "Analytics", hideFromDriver: true },
   ];
+
+  const navLinks = baseNavLinks.filter(l => {
+    if (l.requiresCustomer && user?.role === "DRIVER") return false;
+    if (l.hideFromDriver && user?.role === "DRIVER") return false;
+    return true;
+  });
 
   return (
     <div className="fixed top-4 inset-x-0 z-50 w-full px-4">

@@ -4,12 +4,13 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "../../components/ui/Navbar";
 import { customerAuthHeader, MOCK_CUSTOMER_ID } from "../../lib/session";
+import { useAuth } from "../../app/providers";
 import VehicleIcon from "../../components/vehicles/VehicleIcon";
 
 const GET_VEHICLES_QUERY = `
   query GetAvailableVehicles($type: VehicleType) {
     getAvailableVehicles(type: $type) {
-      id vehicleNumber vehicleType model seatingCapacity availabilityStatus
+      id registrationNumber make vehicleType model seatingCapacity availabilityStatus
     }
   }
 `;
@@ -20,7 +21,7 @@ const CREATE_BOOKING_MUTATION = `
       success
       errors { field message code }
       booking {
-        id bookingType bookingStatus bookingDate bookingTime fareAmount otpCode
+        id serviceType bookingStatus bookingDate bookingTime fareAmount otpCode
         location { pickupLocation destinationLocation distance estimatedDuration }
       }
     }
@@ -37,7 +38,7 @@ const CREATE_PAYMENT_MUTATION = `
   }
 `;
 
-interface Vehicle { id: string; vehicleNumber: string; vehicleType: string; model: string; seatingCapacity: number; availabilityStatus: string; }
+interface Vehicle { id: string; registrationNumber: string; make?: string; vehicleType: string; model: string; seatingCapacity: number; availabilityStatus: string; }
 
 const VEHICLES_UI = {
   SEDAN:     { icon: "SEDAN", label: "Sedan",   desc: "Comfortable 4-seater",    rate: 3.50, color: "#10b981" },
@@ -66,6 +67,23 @@ interface BookingDetails {
   payment?: unknown;
 }
 
+export default function BookRidePage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+  
+  useEffect(() => {
+    if (!loading && (!user || user.role === "DRIVER")) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <BookingPageInner />
+    </Suspense>
+  );
+}
+
 function BookingPageInner() {
   const router = useRouter();
   const params = useSearchParams();
@@ -73,7 +91,7 @@ function BookingPageInner() {
   const [step, setStep] = useState(1); // 1=Route, 2=Details, 3=Confirm, 4=Success
 
   // Step 1
-  const [rideType, setRideType] = useState<"VEHICLE_AND_DRIVER" | "DRIVER_ONLY">("VEHICLE_AND_DRIVER");
+  const [serviceType, setServiceType] = useState<"CAR_WITH_DRIVER" | "DRIVER_ONLY">("CAR_WITH_DRIVER");
   const [from, setFrom] = useState(params.get("from") || "");
   const [to, setTo] = useState(params.get("to") || "");
 
@@ -100,7 +118,7 @@ function BookingPageInner() {
   const dur  = known?.dur  ?? 28;
   const ui = VEHICLES_UI[vehicleTypeFilter as keyof typeof VEHICLES_UI] || VEHICLES_UI.SEDAN;
   const baseFare    = 5;
-  const distFare    = parseFloat((dist * (rideType === "VEHICLE_AND_DRIVER" ? ui.rate : 2.0)).toFixed(2));
+  const distFare    = parseFloat((dist * (serviceType === "CAR_WITH_DRIVER" ? ui.rate : 2.0)).toFixed(2));
   const serviceFee  = parseFloat(((baseFare + distFare) * 0.05).toFixed(2));
   const total       = parseFloat((baseFare + distFare + serviceFee).toFixed(2));
 
@@ -133,13 +151,13 @@ function BookingPageInner() {
   }, [vehicleTypeFilter, selectedVehicleId, selectedVehicle, setLoadingVehicles, setVehicles, setSelectedVehicle]);
 
   useEffect(() => {
-    if (step === 2 && rideType === "VEHICLE_AND_DRIVER") {
+    if (step === 2 && serviceType === "CAR_WITH_DRIVER") {
       const timer = setTimeout(() => {
         fetchVehicles();
       }, 0);
       return () => clearTimeout(timer);
     }
-  }, [step, rideType, fetchVehicles]);
+  }, [step, serviceType, fetchVehicles]);
 
   function goNext() {
     const e: Record<string, string> = {};
@@ -151,7 +169,7 @@ function BookingPageInner() {
     if (step === 2) {
       if (!date) e.date = "Pick a date";
       if (!time) e.time = "Pick a time";
-      if (rideType === "VEHICLE_AND_DRIVER" && !selectedVehicleId) e.vehicle = "Select a vehicle to continue";
+      if (serviceType === "CAR_WITH_DRIVER" && !selectedVehicleId) e.vehicle = "Select a vehicle to continue";
     }
     setErrors(e);
     if (Object.keys(e).length === 0) setStep(p => p + 1);
@@ -169,8 +187,8 @@ function BookingPageInner() {
           query: CREATE_BOOKING_MUTATION,
           variables: {
             input: {
-              customerId: MOCK_CUSTOMER_ID, bookingType: rideType,
-              vehicleId: rideType === "VEHICLE_AND_DRIVER" ? selectedVehicleId || null : null,
+              customerId: MOCK_CUSTOMER_ID, serviceType: serviceType,
+              vehicleId: serviceType === "CAR_WITH_DRIVER" ? selectedVehicleId || null : null,
               pickupLocation: from, destinationLocation: to,
               distance: dist, estimatedDuration: dur,
               bookingDate: date, bookingTime: time, fareAmount: total,
@@ -190,12 +208,6 @@ function BookingPageInner() {
       });
       const payJson = await payRes.json();
       const cp = payJson.data?.createPayment;
-
-      try {
-        const list = JSON.parse(sessionStorage.getItem("mock_booking_history") || "[]");
-        list.push({ ...cb.booking, payment: cp?.payment });
-        sessionStorage.setItem("mock_booking_history", JSON.stringify(list));
-      } catch {}
 
       setSuccessData({ ...cb.booking, payment: cp?.payment });
       setStep(4);
@@ -422,11 +434,11 @@ function BookingPageInner() {
                   {/* Ride type */}
                   <div className="flex gap-2 bg-slate-100 border border-slate-200 p-1 rounded-xl">
                     {([
-                      { val: "VEHICLE_AND_DRIVER", label: "Car & Driver" },
+                      { val: "CAR_WITH_DRIVER", label: "Car & Driver" },
                       { val: "DRIVER_ONLY", label: "Driver Only" }
                     ] as const).map(opt => (
-                      <button key={opt.val} type="button" onClick={() => setRideType(opt.val)}
-                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all cursor-pointer ${rideType === opt.val ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
+                      <button key={opt.val} type="button" onClick={() => setServiceType(opt.val)}
+                        className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition-all cursor-pointer ${serviceType === opt.val ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}>
                         {opt.label}
                       </button>
                     ))}
@@ -525,7 +537,7 @@ function BookingPageInner() {
                   </div>
 
                   {/* Vehicle type filter */}
-                  {rideType === "VEHICLE_AND_DRIVER" && (
+                  {serviceType === "CAR_WITH_DRIVER" && (
                     <div className="flex flex-col gap-3">
                       <label className="text-xs text-slate-500 font-bold uppercase tracking-wider">Vehicle type</label>
                       <div className="grid grid-cols-5 gap-2">
@@ -565,7 +577,7 @@ function BookingPageInner() {
                                 <VehicleIcon type={v.vehicleType} className="w-6 h-6 text-slate-700" />
                                 <div className="flex-1">
                                   <p className="font-bold text-slate-800 text-sm">{v.model}</p>
-                                  <p className="text-xs text-slate-500 mt-0.5">{v.vehicleNumber} · {v.seatingCapacity} seats</p>
+                                  <p className="text-xs text-slate-500 mt-0.5">{v.registrationNumber} · {v.seatingCapacity} seats</p>
                                 </div>
                                 <div className="flex items-center gap-2">
                                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${avail ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"}`}>
@@ -630,7 +642,7 @@ function BookingPageInner() {
                         {[
                           { l: "Date", v: new Date(date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) },
                           { l: "Time", v: time },
-                          { l: "Type", v: rideType === "VEHICLE_AND_DRIVER" ? "Car+Driver" : "Driver Only" },
+                          { l: "Type", v: serviceType === "CAR_WITH_DRIVER" ? "Car+Driver" : "Driver Only" },
                         ].map((d, i) => (
                           <div key={i} className="bg-slate-50 rounded-xl p-3 text-center">
                             <p className="text-[9px] text-slate-400 uppercase font-bold mb-1">{d.l}</p>
@@ -644,7 +656,7 @@ function BookingPageInner() {
                           <VehicleIcon type={selectedVehicle.vehicleType} className="w-6 h-6 text-slate-700" />
                           <div>
                             <p className="text-sm font-bold text-slate-800">{selectedVehicle.model}</p>
-                            <p className="text-xs text-slate-500">{selectedVehicle.vehicleNumber} · {selectedVehicle.seatingCapacity} seats</p>
+                            <p className="text-xs text-slate-500">{selectedVehicle.registrationNumber} · {selectedVehicle.seatingCapacity} seats</p>
                           </div>
                           <button type="button" onClick={() => setStep(2)} className="ml-auto text-xs text-slate-450 hover:text-slate-700 cursor-pointer">Change</button>
                         </div>
@@ -676,7 +688,7 @@ function BookingPageInner() {
                     <p className="text-xs text-slate-400 uppercase font-bold tracking-widest mb-1">Price breakdown</p>
                     {[
                       { label: "Base fare",      val: `$${baseFare.toFixed(2)}` },
-                      { label: `Distance (${dist} km at $${rideType === "VEHICLE_AND_DRIVER" ? ui.rate : 2.0}/km)`, val: `$${distFare}` },
+                      { label: `Distance (${dist} km at $${serviceType === "CAR_WITH_DRIVER" ? ui.rate : 2.0}/km)`, val: `$${distFare}` },
                       { label: "Service fee (5%)", val: `$${serviceFee}` },
                     ].map((row, i) => (
                       <div key={i} className="flex items-center justify-between text-sm text-slate-500">
@@ -714,14 +726,4 @@ function BookingPageInner() {
   );
 }
 
-export default function BookingPage() {
-  return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-emerald-600 border-t-transparent animate-spin" />
-      </div>
-    }>
-      <BookingPageInner />
-    </Suspense>
-  );
-}
+

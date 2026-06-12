@@ -23,13 +23,16 @@ export async function processChatWithNLP(
 
   const currentEntities = JSON.stringify(context.currentEntities, null, 2);
 
-  const prompt = `You are DriveMate AI, an NLP-powered mobility assistant coordinating an end-to-end booking workflow.
+  const prompt = `You are DriveMate AI, a premium Smart Driver & Mobility assistant coordinating an end-to-end booking workflow.
 
 Analyze the user's message and perform the following tasks:
 1. Identify the user's intent. Possible intents: BookRide, ConfirmBooking, SubmitReview, CancelRide, FareEstimation, FAQ, Greeting.
-2. Extract booking entities (pickup, destination, date, time, etc.) OR if the intent is SubmitReview, extract the review text into 'reviewText' under entities.
-3. Detect missing required info if intent is BookRide (pickup, destination, date, time).
-4. Generate a conversational response.
+2. Extract booking entities (pickup, destination, date, time, passengers, priority, specialRequests, reviewText).
+3. Detect the 'serviceType' STRICTLY as either "DRIVER_ONLY" or "CAR_WITH_DRIVER". 
+   - If the user implies they have their own car (e.g. "I have my own car", "feeling tired to drive", "need a driver"), set serviceType to "DRIVER_ONLY".
+   - If the user implies they need a car or a complete ride (e.g. "need a ride to the airport", "cab"), set serviceType to "CAR_WITH_DRIVER".
+4. If intent is BookRide and you cannot confidently determine the serviceType, leave serviceType null and add "serviceType" to missingFields.
+5. Generate a conversational response. If serviceType is missing, ask: "Do you already have your own vehicle, or would you like DriveMate to provide one?".
 
 Currently Known Entities:
 ${currentEntities}
@@ -48,7 +51,7 @@ Return ONLY valid JSON in the exact structure below. Do not use markdown blocks 
     "destination": "",
     "date": "",
     "time": "",
-    "rideType": "Standard",
+    "serviceType": null,
     "passengers": 1,
     "priority": "",
     "specialRequests": "",
@@ -89,7 +92,7 @@ function fallbackNLP(message: string, context: ChatContext): NLPResponse {
       destination: context.currentEntities?.destination || null,
       date: context.currentEntities?.date || null,
       time: context.currentEntities?.time || null,
-      rideType: context.currentEntities?.rideType || "Standard",
+      serviceType: context.currentEntities?.serviceType || null,
       passengers: context.currentEntities?.passengers || 1,
       priority: context.currentEntities?.priority || null,
       specialRequests: context.currentEntities?.specialRequests || null,
@@ -99,8 +102,8 @@ function fallbackNLP(message: string, context: ChatContext): NLPResponse {
     response: "I'm sorry, I couldn't fully understand your request. Could you please rephrase it?"
   };
 
-  // 1. SubmitReview Intent (If the workflow is currently COMPLETED)
-  if (context.workflowState?.currentStep === "COMPLETED") {
+  // 1. SubmitReview Intent (If the workflow is currently TRIP_COMPLETED)
+  if (context.workflowState?.currentStep === "TRIP_COMPLETED") {
     response.intent = "SubmitReview";
     response.entities.reviewText = message;
     response.response = "Thank you for your feedback! Parsing review...";
@@ -109,7 +112,7 @@ function fallbackNLP(message: string, context: ChatContext): NLPResponse {
 
   // 2. ConfirmBooking Intent
   const isConfirm = msg.includes("confirm") || msg.includes("yes") || msg.includes("ok") || msg.includes("sure") || msg.includes("yep") || msg.includes("agree");
-  if (context.workflowState?.currentStep === "MATCHED" && isConfirm) {
+  if (context.workflowState?.currentStep === "MATCHING" && isConfirm) {
     response.intent = "ConfirmBooking";
     response.response = "Confirming your booking now...";
     return response;
@@ -137,12 +140,17 @@ function fallbackNLP(message: string, context: ChatContext): NLPResponse {
     if (!response.entities.pickup) missing.push("pickup");
     if (!response.entities.destination) missing.push("destination");
 
+    if (!response.entities.serviceType) missing.push("serviceType");
+
     response.missingFields = missing;
     
-    if (missing.length > 0) {
+    if (missing.includes("serviceType")) {
+      response.response = "Do you already have your own vehicle, or would you like DriveMate to provide one?";
+    } else if (missing.length > 0) {
       response.response = `To book a ride, I need your ${missing.join(" and ")}. Please provide them (e.g. from Delhi to Mumbai).`;
     } else {
-      response.response = `Booking your ride from ${response.entities.pickup} to ${response.entities.destination}...`;
+      const mode = response.entities.serviceType === "DRIVER_ONLY" ? "Driver Only" : "Car + Driver";
+      response.response = `Booking your ${mode} service from ${response.entities.pickup} to ${response.entities.destination}...`;
     }
     return response;
   }

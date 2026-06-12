@@ -11,7 +11,7 @@ export const CREATE_BOOKING_MUTATION = `
         customerId
         driverId
         vehicleId
-        bookingType
+        serviceType
         bookingStatus
         bookingDate
         bookingTime
@@ -135,7 +135,8 @@ export const ADD_VEHICLE_MUTATION = `
       errors { field message code }
       vehicle {
         id
-        vehicleNumber
+        registrationNumber
+        make
         vehicleType
         model
         seatingCapacity
@@ -153,7 +154,8 @@ export const UPDATE_VEHICLE_MUTATION = `
       errors { field message code }
       vehicle {
         id
-        vehicleNumber
+        registrationNumber
+        make
         vehicleType
         model
         seatingCapacity
@@ -169,7 +171,16 @@ export const DELETE_VEHICLE_MUTATION = `
     deleteVehicle(id: $id) {
       success
       errors { field message code }
-      vehicle { id vehicleNumber model }
+      vehicle { id registrationNumber model }
+    }
+  }
+`;
+
+export const TOGGLE_DRIVER_AVAILABILITY_MUTATION = `
+  mutation ToggleDriverAvailability {
+    toggleDriverAvailability {
+      id
+      availabilityStatus
     }
   }
 `;

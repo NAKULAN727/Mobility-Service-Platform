@@ -8,6 +8,6 @@ export default defineConfig({
     seed: "node prisma/seed.js",
   },
   datasource: {
-    url: process.env.DATABASE_URL ?? "postgresql://postgres@localhost:5433/mobility_db",
+    url: process.env.DATABASE_URL ?? "postgresql://postgres@127.0.0.1:5435/mobility_db",
   },
 });

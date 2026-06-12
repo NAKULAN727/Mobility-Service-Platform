@@ -16,20 +16,28 @@ enum AvailabilityStatus {
   DECOMMISSIONED
 }
 
-enum BookingType {
+enum ServiceType {
   DRIVER_ONLY
-  VEHICLE_AND_DRIVER
+  CAR_WITH_DRIVER
+}
+
+enum DriverType {
+  DRIVER_ONLY
+  DRIVER_WITH_VEHICLE
 }
 
 enum BookingStatus {
-  DRAFT
   REQUESTED
   MATCHING
+  DRIVER_ASSIGNED
   ACCEPTED
-  ARRIVING
-  ARRIVED
-  ACTIVE
-  COMPLETED
+  DRIVER_ARRIVING
+  OTP_PENDING
+  OTP_VERIFIED
+  TRIP_STARTED
+  TRIP_COMPLETED
+  REVIEW_PENDING
+  CLOSED
   CANCELLED
   DISPUTED
 }
@@ -78,6 +86,14 @@ enum DocumentType {
   VEHICLE_CERTIFICATE
 }
 
+enum NotificationType {
+  INFO
+  SUCCESS
+  WARNING
+  ERROR
+  SYSTEM
+}
+
 # --- ERROR HANDLING STRATEGY TYPES ---
 
 type UserError {
@@ -90,10 +106,13 @@ type UserError {
 
 type Vehicle {
   id: ID!
-  vehicleNumber: String!
+  registrationNumber: String!
+  make: String!
   vehicleType: VehicleType!
   model: String!
   seatingCapacity: Int!
+  insurance: String
+  verificationStatus: VerificationStatus!
   availabilityStatus: AvailabilityStatus!
   createdAt: String!
   updatedAt: String!
@@ -114,7 +133,7 @@ type Booking {
   customerId: ID!
   driverId: ID
   vehicleId: ID
-  bookingType: BookingType!
+  serviceType: ServiceType!
   location: Location!
   bookingDate: String! # ISO Date string (e.g. YYYY-MM-DD)
   bookingTime: String! # 24hr Time format (e.g. HH:MM)
@@ -122,8 +141,37 @@ type Booking {
   bookingStatus: BookingStatus!
   otpCode: String!
   payment: Payment
+  review: Review
   createdAt: String!
   updatedAt: String!
+}
+
+type Review {
+  id: ID!
+  bookingId: ID!
+  rating: Int!
+  reviewText: String!
+  sentiment: String!
+  confidence: Float!
+  keywords: [String!]!
+  summary: String!
+  createdAt: String!
+}
+
+type Notification {
+  id: ID!
+  userId: ID!
+  title: String!
+  message: String!
+  type: NotificationType!
+  read: Boolean!
+  createdAt: String!
+}
+
+type ReviewPayload {
+  success: Boolean!
+  errors: [UserError!]!
+  review: Review
 }
 
 type Payment {
@@ -155,6 +203,9 @@ type DriverProfile {
   userId: ID!
   licenseNumber: String!
   experienceYears: Int!
+  driverType: DriverType!
+  ownsVehicle: Boolean!
+  vehicleId: ID
   availabilityStatus: Boolean!
   verificationStatus: VerificationStatus!
   createdAt: String!
@@ -200,8 +251,8 @@ type BookingConnection {
 
 input BookingCreateInput {
   customerId: ID!
-  bookingType: BookingType!
-  vehicleId: ID # Optional, selected if VEHICLE_AND_DRIVER
+  serviceType: ServiceType!
+  vehicleId: ID # Optional, selected if CAR_WITH_DRIVER
   pickupLocation: String!
   destinationLocation: String!
   distance: Float!
@@ -212,7 +263,8 @@ input BookingCreateInput {
 }
 
 input VehicleCreateInput {
-  vehicleNumber: String!
+  registrationNumber: String!
+  make: String!
   vehicleType: VehicleType!
   model: String!
   seatingCapacity: Int!
@@ -220,7 +272,8 @@ input VehicleCreateInput {
 }
 
 input VehicleUpdateInput {
-  vehicleNumber: String
+  registrationNumber: String
+  make: String
   vehicleType: VehicleType
   model: String
   seatingCapacity: Int
@@ -287,7 +340,7 @@ type Query {
   estimateFare(
     distanceKm: Float!
     vehicleType: VehicleType!
-    bookingType: BookingType!
+    serviceType: ServiceType!
   ): FareEstimate!
 
   # AI-facing: get all active bookings (for AI dispatch)
@@ -298,6 +351,9 @@ type Query {
   getUserProfile(userId: ID!): User
   getAllDrivers: [DriverProfile!]!
   getDriverById(driverId: ID!): DriverProfile
+
+  # Notifications
+  getNotifications: [Notification!]!
 }
 
 type Mutation {
@@ -310,8 +366,20 @@ type Mutation {
   # Driver accepts offered booking request
   acceptBooking(bookingId: ID!, driverId: ID!): BookingPayload!
 
-  # Driver begins active ride route (validates OTP input)
-  startTrip(bookingId: ID!, otpCode: String!): BookingPayload!
+  # Driver rejects offered booking request
+  rejectBooking(bookingId: ID!, driverId: ID!): BookingPayload!
+
+  # Driver indicates they are on the way
+  driverArriving(bookingId: ID!): BookingPayload!
+
+  # Driver indicates they have arrived at pickup, requests OTP
+  arriveAtPickup(bookingId: ID!): BookingPayload!
+
+  # Driver inputs OTP from customer
+  verifyOTP(bookingId: ID!, otpCode: String!): BookingPayload!
+
+  # Driver begins active ride route
+  startTrip(bookingId: ID!): BookingPayload!
 
   # Driver marks destination as reached and completes the ride
   completeTrip(bookingId: ID!): BookingPayload!
@@ -342,6 +410,15 @@ type Mutation {
     password: String!
     licenseNumber: String!
     experienceYears: Int!
+    driverType: DriverType!
+    ownsVehicle: Boolean!
+    vehicleId: ID
+    # Vehicle fields — required when ownsVehicle is true
+    vehicleType: VehicleType
+    vehicleMake: String
+    vehicleModel: String
+    vehicleRegistrationNumber: String
+    vehicleSeatingCapacity: Int
   ): AuthResponse!
 
   login(
@@ -363,6 +440,17 @@ type Mutation {
   verifyDriver(driverId: ID!): DriverProfile!
   rejectDriver(driverId: ID!): DriverProfile!
   changePassword(oldPassword: String!, newPassword: String!): Boolean!
+  toggleDriverAvailability: DriverProfile!
+  
+  submitReview(
+    bookingId: ID!
+    rating: Int!
+    reviewText: String!
+  ): ReviewPayload!
+
+  # Notifications
+  markNotificationRead(id: ID!): Boolean!
+  markAllNotificationsRead: Boolean!
 }
 
 type FareEstimate {
@@ -374,5 +462,5 @@ type FareEstimate {
   distanceKm: Float!
   estimatedDurationMin: Int!
   vehicleType: String!
-  bookingType: String!
+  serviceType: String!
 }

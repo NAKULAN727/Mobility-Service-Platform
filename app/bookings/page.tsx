@@ -4,13 +4,14 @@ import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../../components/ui/Navbar";
 import { customerAuthHeader, MOCK_CUSTOMER_ID } from "../../lib/session";
+import { useAuth } from "../../app/providers";
 
 const GET_BOOKING_HISTORY_QUERY = `
   query GetBookingHistory($customerId: ID!, $first: Int, $after: String) {
     getBookingHistory(customerId: $customerId, first: $first, after: $after) {
       edges {
         node {
-          id bookingType bookingStatus bookingDate bookingTime fareAmount otpCode
+          id serviceType bookingStatus bookingDate bookingTime fareAmount otpCode
           location { pickupLocation destinationLocation distance estimatedDuration }
           payment { paymentStatus paymentMethod transactionId }
           createdAt
@@ -36,7 +37,7 @@ const CANCEL_BOOKING_MUTATION = `
 interface Location { pickupLocation: string; destinationLocation: string; distance: number; estimatedDuration: number; }
 interface Payment { paymentStatus: string; paymentMethod: string; transactionId: string | null; }
 interface Booking {
-  id: string; bookingType: string; bookingStatus: string; bookingDate: string;
+  id: string; serviceType: string; bookingStatus: string; bookingDate: string;
   bookingTime: string; fareAmount: number; otpCode: string;
   location: Location; payment: Payment | null; createdAt: string;
 }
@@ -61,21 +62,6 @@ function activeStepIndex(status: string) {
   return -1;
 }
 
-// Mock data for when DB is unavailable
-const MOCK_ACTIVE: Booking = {
-  id: "book-active-uuid-101", bookingType: "VEHICLE_AND_DRIVER", bookingStatus: "ACCEPTED",
-  bookingDate: new Date().toISOString().split("T")[0],
-  bookingTime: new Date().toTimeString().slice(0, 5),
-  fareAmount: 89.75, otpCode: "558822",
-  location: { pickupLocation: "JFK International Airport, New York", destinationLocation: "Times Square, Manhattan, NY", distance: 28.5, estimatedDuration: 45 },
-  payment: { paymentStatus: "PENDING", paymentMethod: "CARD", transactionId: "CARD-HOLD-998822" },
-  createdAt: new Date().toISOString(),
-};
-const MOCK_PAST: Booking[] = [
-  { id: "p001", bookingType: "VEHICLE_AND_DRIVER", bookingStatus: "COMPLETED", bookingDate: "2026-06-10", bookingTime: "08:30", fareAmount: 105, otpCode: "112233", location: { pickupLocation: "JFK International Airport, New York", destinationLocation: "Times Square, Manhattan, NY", distance: 28.5, estimatedDuration: 45 }, payment: { paymentStatus: "SUCCESS", paymentMethod: "CARD", transactionId: "TX-9922" }, createdAt: "2026-06-10T08:30:00Z" },
-  { id: "p002", bookingType: "DRIVER_ONLY", bookingStatus: "CANCELLED", bookingDate: "2026-06-08", bookingTime: "12:00", fareAmount: 22, otpCode: "998877", location: { pickupLocation: "Grand Central Terminal, New York", destinationLocation: "Metropolitan Museum of Art, NY", distance: 4.2, estimatedDuration: 15 }, payment: { paymentStatus: "FAILED", paymentMethod: "UPI", transactionId: null }, createdAt: "2026-06-08T12:00:00Z" },
-  { id: "p003", bookingType: "VEHICLE_AND_DRIVER", bookingStatus: "COMPLETED", bookingDate: "2026-06-05", bookingTime: "18:15", fareAmount: 64, otpCode: "665544", location: { pickupLocation: "Brooklyn Bridge Park, New York", destinationLocation: "LaGuardia Airport, New York", distance: 16.8, estimatedDuration: 30 }, payment: { paymentStatus: "SUCCESS", paymentMethod: "CARD", transactionId: "TX-5544" }, createdAt: "2026-06-05T18:15:00Z" },
-];
 
 function MyRidesInner() {
   const router = useRouter();
@@ -123,15 +109,9 @@ function MyRidesInner() {
   }
 
   function useMock() {
-    try {
-      const stored = JSON.parse(sessionStorage.getItem("mock_booking_history") || "[]") as Booking[];
-      const sa = stored.find(b => ACTIVE_STATES.includes(b.bookingStatus));
-      setActiveRide(sa || MOCK_ACTIVE);
-      setPastRides([...stored.filter(b => !ACTIVE_STATES.includes(b.bookingStatus)), ...MOCK_PAST]);
-    } catch (_) {
-      setActiveRide(MOCK_ACTIVE);
-      setPastRides(MOCK_PAST);
-    }
+    // DB unavailable - show empty states rather than fake data
+    setActiveRide(null);
+    setPastRides([]);
   }
 
   async function loadMore() {
@@ -393,7 +373,7 @@ function MyRidesInner() {
                               <span>·</span>
                               <span>~{b.location.estimatedDuration} min</span>
                               <span>·</span>
-                              <span>{b.bookingType === "VEHICLE_AND_DRIVER" ? "Car + Driver" : "Driver Only"}</span>
+                              <span>{b.serviceType === "CAR_WITH_DRIVER" ? "Car + Driver" : "Driver Only"}</span>
                               {b.payment && <><span>·</span><span>{b.payment.paymentMethod}</span></>}
                             </div>
                           </div>
@@ -437,6 +417,15 @@ function MyRidesInner() {
 }
 
 export default function MyRidesPage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+  
+  useEffect(() => {
+    if (!loading && (!user || user.role === "DRIVER")) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">

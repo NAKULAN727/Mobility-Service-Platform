@@ -1,7 +1,6 @@
 "use server";
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { mockReviews } from "../data/mockReviews";
 import { ReviewAnalysis } from "../types/review";
 
 export async function analyzeReview(reviewText: string): Promise<ReviewAnalysis> {
@@ -63,16 +62,9 @@ ${reviewText}`;
       summary: parsedData.summary || "No summary provided."
     };
 
-    // Store in mock database
-    mockReviews.unshift(analysis); // Add to beginning of array
-
     return analysis;
   } catch (error) {
     console.error("Gemini API Error during sentiment analysis:", error);
     throw new Error("Unable to analyze review at the moment. Please try again later.");
   }
-}
-
-export async function getMockReviews(): Promise<ReviewAnalysis[]> {
-  return mockReviews;
 }

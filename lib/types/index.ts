@@ -9,17 +9,20 @@ export type AvailabilityStatus =
   | "OUT_OF_SERVICE"
   | "DECOMMISSIONED";
 
-export type BookingType = "DRIVER_ONLY" | "VEHICLE_AND_DRIVER";
+export type ServiceType = "DRIVER_ONLY" | "CAR_WITH_DRIVER";
 
 export type BookingStatus =
-  | "DRAFT"
   | "REQUESTED"
   | "MATCHING"
+  | "DRIVER_ASSIGNED"
   | "ACCEPTED"
-  | "ARRIVING"
-  | "ARRIVED"
-  | "ACTIVE"
-  | "COMPLETED"
+  | "DRIVER_ARRIVING"
+  | "OTP_PENDING"
+  | "OTP_VERIFIED"
+  | "TRIP_STARTED"
+  | "TRIP_COMPLETED"
+  | "REVIEW_PENDING"
+  | "CLOSED"
   | "CANCELLED"
   | "DISPUTED";
 
@@ -30,7 +33,8 @@ export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
 
 export interface Vehicle {
   id: string;
-  vehicleNumber: string;
+  registrationNumber: string;
+  make?: string;
   vehicleType: string;
   model: string;
   seatingCapacity: number;
@@ -65,7 +69,7 @@ export interface Booking {
   customerId?: string;
   driverId?: string | null;
   vehicleId?: string | null;
-  bookingType: string;
+  serviceType: string;
   bookingStatus: string;
   bookingDate: string;
   bookingTime: string;
@@ -137,7 +141,7 @@ export interface FareEstimate {
   distanceKm: number;
   estimatedDurationMin: number;
   vehicleType: string;
-  bookingType: string;
+  serviceType: string;
 }
 
 export interface FareBreakdown {
@@ -152,7 +156,7 @@ export interface FareBreakdown {
 
 export interface BookingCreateInput {
   customerId: string;
-  bookingType: string;
+  serviceType: string;
   vehicleId?: string | null;
   pickupLocation: string;
   destinationLocation: string;
@@ -164,7 +168,8 @@ export interface BookingCreateInput {
 }
 
 export interface VehicleCreateInput {
-  vehicleNumber: string;
+  registrationNumber: string;
+  make?: string;
   vehicleType: string;
   model: string;
   seatingCapacity: number;
@@ -172,7 +177,8 @@ export interface VehicleCreateInput {
 }
 
 export interface VehicleUpdateInput {
-  vehicleNumber?: string;
+  registrationNumber?: string;
+  make?: string;
   vehicleType?: string;
   model?: string;
   seatingCapacity?: number;
@@ -184,10 +190,12 @@ export interface VehicleUpdateInput {
 export const ACTIVE_BOOKING_STATES = [
   "REQUESTED",
   "MATCHING",
+  "DRIVER_ASSIGNED",
   "ACCEPTED",
-  "ARRIVING",
-  "ARRIVED",
-  "ACTIVE",
+  "DRIVER_ARRIVING",
+  "OTP_PENDING",
+  "OTP_VERIFIED",
+  "TRIP_STARTED"
 ];
 
 export function isActiveBooking(status: string): boolean {
@@ -195,7 +203,7 @@ export function isActiveBooking(status: string): boolean {
 }
 
 export function isTerminalBooking(status: string): boolean {
-  return ["COMPLETED", "CANCELLED", "DISPUTED"].includes(status.toUpperCase());
+  return ["COMPLETED", "TRIP_COMPLETED", "CANCELLED", "DISPUTED"].includes(status.toUpperCase());
 }
 
 // ─── UI Metadata ──────────────────────────────────────────────────────────────
@@ -219,24 +227,18 @@ export const VEHICLE_RATES: Record<string, string> = {
   HATCHBACK: "$2.80/km",
 };
 
-export const STATUS_COLORS: Record<
-  string,
-  { bg: string; text: string; border: string; dot: string }
-> = {
-  AVAILABLE:      { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200/60", dot: "bg-emerald-600" },
-  BOOKED:         { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200/60", dot: "bg-amber-600" },
-  MAINTENANCE:    { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200/60", dot: "bg-blue-600" },
-  OUT_OF_SERVICE: { bg: "bg-red-50",   text: "text-red-700",   border: "border-red-200/60",   dot: "bg-red-600"   },
-  DECOMMISSIONED: { bg: "bg-slate-100",     text: "text-slate-600",  border: "border-slate-200",     dot: "bg-slate-500"  },
-  COMPLETED:      { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200/60", dot: "bg-emerald-600" },
-  CANCELLED:      { bg: "bg-red-50",    text: "text-red-700",   border: "border-red-200/60",   dot: "bg-red-600"   },
-  REQUESTED:      { bg: "bg-amber-50",  text: "text-amber-700", border: "border-amber-200/60", dot: "bg-amber-600" },
-  MATCHING:       { bg: "bg-amber-50",  text: "text-amber-700", border: "border-amber-200/60", dot: "bg-amber-600" },
-  ACCEPTED:       { bg: "bg-amber-50",  text: "text-amber-700", border: "border-amber-200/60", dot: "bg-amber-600" },
-  ARRIVING:       { bg: "bg-amber-50",  text: "text-amber-700", border: "border-amber-200/60", dot: "bg-amber-600" },
-  ARRIVED:        { bg: "bg-amber-50",  text: "text-amber-700", border: "border-amber-200/60", dot: "bg-amber-600" },
-  ACTIVE:         { bg: "bg-amber-50",  text: "text-amber-700", border: "border-amber-200/60", dot: "bg-amber-600" },
-  DISPUTED:       { bg: "bg-red-50",   text: "text-red-700",   border: "border-red-200/60",   dot: "bg-red-600"   },
-  DRAFT:          { bg: "bg-slate-100",  text: "text-slate-600",  border: "border-slate-200",     dot: "bg-slate-500"  },
+export const BOOKING_STATUS_UI_MAP: Record<string, { bg: string; text: string; border: string; dot?: string }> = {
+  REQUESTED:      { bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200/60",  dot: "bg-blue-600" },
+  MATCHING:       { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200/60",dot: "bg-indigo-600" },
+  DRIVER_ASSIGNED:{ bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200/60",dot: "bg-indigo-600" },
+  ACCEPTED:       { bg: "bg-amber-50",  text: "text-amber-700",  border: "border-amber-200/60", dot: "bg-amber-600" },
+  DRIVER_ARRIVING:{ bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200/60",dot: "bg-orange-600" },
+  OTP_PENDING:    { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200/60",dot: "bg-yellow-600" },
+  OTP_VERIFIED:   { bg: "bg-lime-50",   text: "text-lime-700",   border: "border-lime-200/60",  dot: "bg-lime-600" },
+  TRIP_STARTED:   { bg: "bg-emerald-50",text: "text-emerald-700",border: "border-emerald-200/60",dot: "bg-emerald-600" },
+  TRIP_COMPLETED: { bg: "bg-emerald-50",text: "text-emerald-700",border: "border-emerald-200/60",dot: "bg-emerald-600" },
+  REVIEW_PENDING: { bg: "bg-blue-50",   text: "text-blue-700",   border: "border-blue-200/60",  dot: "bg-blue-600" },
+  CLOSED:         { bg: "bg-zinc-50",   text: "text-zinc-600",   border: "border-zinc-200/60",  dot: "bg-zinc-500" },
+  CANCELLED:      { bg: "bg-red-50",    text: "text-red-700",    border: "border-red-200/60",   dot: "bg-red-600" },
+  DISPUTED:       { bg: "bg-rose-50",   text: "text-rose-700",   border: "border-rose-200/60",  dot: "bg-rose-600" },
 };
-

@@ -1,25 +1,54 @@
 "use server";
 
-import { mockDrivers } from "../data/mockDrivers";
-import { Driver } from "../types/driver";
+import prisma from "./prisma";
 import { calculateDriverScore } from "./scoringEngine";
 import { getGeminiReason } from "./gemini";
 
 export interface DriverRecommendation {
-  driver: Driver;
+  driver: any;
   score: number;
   reason: string;
 }
 
 export async function getTopDrivers(bookingDetails: any): Promise<DriverRecommendation[]> {
-  // 1. Filter unavailable drivers
-  const availableDrivers = mockDrivers.filter(driver => driver.availability);
+  // 1. Fetch available verified drivers from PostgreSQL
+  const whereClause: any = {
+    role: "DRIVER",
+    driverProfile: {
+      availabilityStatus: true,
+      verificationStatus: "APPROVED"
+    }
+  };
+
+  // If CAR_WITH_DRIVER, we might prioritize DRIVER_WITH_VEHICLE, but for now just get available drivers.
+  // Real implementation would filter based on fleet logic.
+
+  const availableUsers = await prisma.user.findMany({
+    where: whereClause,
+    include: {
+      driverProfile: true
+    }
+  });
+
+  // Map to the format scoringEngine expects, simulating live GPS data like ETA
+  const availableDrivers = availableUsers.map(u => ({
+    id: u.id,
+    fullName: u.fullName, // Use fullName for chatbot orchestrator
+    rating: 4.8 + (Math.random() * 0.2), // In real life, calculate average rating from Review table
+    distance: Math.floor(Math.random() * 5) + 1,
+    eta: Math.floor(Math.random() * 15) + 5,
+    acceptanceRate: 90 + Math.floor(Math.random() * 10),
+    experienceYears: u.driverProfile?.experienceYears || 1,
+    driverType: u.driverProfile?.driverType || "DRIVER_ONLY"
+  }));
+
+  if (availableDrivers.length === 0) return [];
 
   // 2. Calculate scores
   const scoredDrivers = availableDrivers.map(driver => ({
     driver,
-    score: calculateDriverScore(driver),
-    reason: "" // will be populated
+    score: calculateDriverScore(driver as any, bookingDetails.serviceType),
+    reason: "" 
   }));
 
   // 3. Sort drivers by score (descending)
@@ -28,11 +57,10 @@ export async function getTopDrivers(bookingDetails: any): Promise<DriverRecommen
   // 4. Return Top 3 recommendations
   const topDrivers = scoredDrivers.slice(0, 3);
 
-  // 5. Generate explanations (try Gemini, use fallback if it fails)
+  // 5. Generate explanations
   for (const item of topDrivers) {
     try {
-      // Create a simplified driver representation for the prompt
-      const driverData = `Name: ${item.driver.name}, Rating: ${item.driver.rating}, ETA: ${item.driver.eta} mins, Distance: ${item.driver.distance} km, Vehicle: ${item.driver.vehicle}`;
+      const driverData = `Name: ${item.driver.fullName}, Rating: ${item.driver.rating.toFixed(1)}, ETA: ${item.driver.eta} mins, Distance: ${item.driver.distance} km`;
       const bookingData = JSON.stringify(bookingDetails);
 
       const prompt = `Given the following driver information and booking request, explain in one sentence why this driver is recommended.
@@ -46,7 +74,7 @@ Keep the explanation short and user-friendly. Do not start with "This driver is 
       item.reason = reason;
     } catch (e) {
       console.error("Failed to fetch Gemini reason, using fallback", e);
-      item.reason = `${item.driver.name} is recommended because they have a ${item.driver.rating} rating and are only ${item.driver.eta} mins away.`;
+      item.reason = `${item.driver.fullName} is recommended because they have a ${item.driver.rating.toFixed(1)} rating and are only ${item.driver.eta} mins away.`;
     }
   }
 

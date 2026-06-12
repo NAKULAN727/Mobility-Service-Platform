@@ -3,7 +3,7 @@ export interface NLPEntities {
   destination: string | null;
   date: string | null;
   time: string | null;
-  rideType: string | null;
+  serviceType: "DRIVER_ONLY" | "CAR_WITH_DRIVER" | null;
   passengers: string | number | null;
   priority: string | null;
   specialRequests: string | null;
@@ -37,4 +37,5 @@ export interface ChatContext {
   messages: ChatMessage[];
   currentEntities: NLPEntities;
   workflowState?: WorkflowState;
+  customerId?: string;
 }

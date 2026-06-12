@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { useAuth } from "../../providers";
@@ -84,7 +85,15 @@ interface Driver {
 }
 
 export default function AdminDriversPage() {
-  const { logout, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const { user, logout, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && (!user || user.role !== "ADMIN")) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
+
   const [filterStatus, setFilterStatus] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null);
@@ -121,7 +130,7 @@ export default function AdminDriversPage() {
     },
   });
 
-  if (authLoading) {
+  if (authLoading || !user || user.role !== "ADMIN") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-zinc-900">
         <Loader2 className="h-6 w-6 animate-spin text-zinc-900" />

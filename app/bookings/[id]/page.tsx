@@ -7,6 +7,7 @@ import PageLoader from "../../../components/ui/PageLoader";
 import StatusBadge from "../../../components/booking/StatusBadge";
 import BookingTimeline from "../../../components/booking/BookingTimeline";
 import { customerAuthHeader, MOCK_CUSTOMER_ID } from "../../../lib/session";
+import { useAuth } from "../../../app/providers";
 import { Booking, ACTIVE_BOOKING_STATES } from "../../../lib/types";
 import {
   canCancelBooking,
@@ -266,7 +267,7 @@ function BookingDetailInner() {
               {[
                 { label: "Distance", value: `${booking.location.distance} km` },
                 { label: "Est. Time", value: `~${booking.location.estimatedDuration} min` },
-                { label: "Ride Type", value: booking.bookingType === "VEHICLE_AND_DRIVER" ? "Car + Driver" : "Driver Only" },
+                { label: "Ride Type", value: booking.serviceType === "VEHICLE_AND_DRIVER" ? "Car + Driver" : "Driver Only" },
               ].map((item) => (
                 <div key={item.label} className="bg-slate-50 rounded-xl p-3 text-center">
                   <p className="text-[9px] text-slate-400 uppercase font-bold mb-1">{item.label}</p>
@@ -359,6 +360,15 @@ function BookingDetailInner() {
 }
 
 export default function BookingDetailPage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+  
+  useEffect(() => {
+    if (!loading && (!user || user.role === "DRIVER")) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
   return (
     <Suspense fallback={<PageLoader message="Loading booking..." />}>
       <BookingDetailInner />

@@ -1,8 +1,12 @@
 export interface FareEstimate {
-    baseFare: number;
+    driverBaseFee?: number;
+    vehicleRentalBase?: number;
     distanceCharge: number;
     timeCharge: number;
-    surgeMultiplier: number;
-    rideMultiplier: number;
+    trafficMultiplier?: number;
+    fuelAdjustment?: number;
+    experienceMultiplier?: number;
     totalFare: number;
+    distanceKm: number;
+    estimatedDurationMin: number;
 }

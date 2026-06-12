@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "../providers";
 import Navbar from "../../components/ui/Navbar";
 import PageLoader from "../../components/ui/PageLoader";
 import { Booking } from "../../lib/types";
@@ -162,7 +164,7 @@ const MOCK_BOOKINGS: Booking[] = [
     customerId: "cust-uuid-001",
     driverId: "driver-uuid-101",
     vehicleId: "m1",
-    bookingType: "VEHICLE_AND_DRIVER",
+    serviceType: "CAR_WITH_DRIVER",
     bookingStatus: "COMPLETED",
     bookingDate: "2026-06-10",
     bookingTime: "08:30:00",
@@ -186,7 +188,7 @@ const MOCK_BOOKINGS: Booking[] = [
     customerId: "cust-uuid-002",
     driverId: "driver-uuid-102",
     vehicleId: null,
-    bookingType: "DRIVER_ONLY",
+    serviceType: "DRIVER_ONLY",
     bookingStatus: "ACTIVE",
     bookingDate: "2026-06-12",
     bookingTime: "14:00:00",
@@ -210,7 +212,7 @@ const MOCK_BOOKINGS: Booking[] = [
     customerId: "cust-uuid-003",
     driverId: null,
     vehicleId: "m4",
-    bookingType: "VEHICLE_AND_DRIVER",
+    serviceType: "CAR_WITH_DRIVER",
     bookingStatus: "REQUESTED",
     bookingDate: "2026-06-13",
     bookingTime: "18:15:00",
@@ -234,6 +236,19 @@ const MOCK_BOOKINGS: Booking[] = [
 // ─── Export ───────────────────────────────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  useEffect(() => {
+    if (!loading && (!user || user.role !== "ADMIN")) {
+      router.push("/login");
+    }
+  }, [user, loading, router]);
+
+  if (loading || !user || user.role !== "ADMIN") {
+    return <PageLoader message="Authenticating..." />;
+  }
+
   return (
     <Suspense fallback={<PageLoader message="Loading admin dashboard..." />}>
       <AdminDashboardInner />

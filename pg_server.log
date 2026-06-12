@@ -3,3 +3,23 @@
 2026-06-12 18:47:01.370 IST [28548] LOG:  listening on IPv4 address "127.0.0.1", port 5433
 2026-06-12 18:47:01.594 IST [15916] LOG:  database system was shut down at 2026-06-12 18:46:44 IST
 2026-06-12 18:47:01.604 IST [28548] LOG:  database system is ready to accept connections
+2026-06-12 21:12:57.723 IST [24408] FATAL:  could not open directory "pg_notify": No such file or directory
+2026-06-12 21:12:57.726 IST [24408] LOG:  database system is shut down
+2026-06-12 21:14:28.825 IST [2676] LOG:  starting PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35226, 64-bit
+2026-06-12 21:14:28.835 IST [2676] LOG:  could not bind IPv6 address "::1": Permission denied
+2026-06-12 21:14:28.835 IST [2676] LOG:  could not bind IPv4 address "127.0.0.1": Permission denied
+2026-06-12 21:14:28.835 IST [2676] WARNING:  could not create listen socket for "localhost"
+2026-06-12 21:14:28.835 IST [2676] FATAL:  could not create any TCP/IP sockets
+2026-06-12 21:14:28.839 IST [2676] LOG:  database system is shut down
+2026-06-12 21:17:01.121 IST [22460] LOG:  starting PostgreSQL 18.4 on x86_64-windows, compiled by msvc-19.44.35226, 64-bit
+2026-06-12 21:17:01.130 IST [22460] LOG:  listening on IPv6 address "::1", port 5435
+2026-06-12 21:17:01.131 IST [22460] LOG:  listening on IPv4 address "127.0.0.1", port 5435
+2026-06-12 21:17:01.212 IST [10608] LOG:  database system was interrupted; last known up at 2026-06-12 12:42:05 IST
+2026-06-12 21:17:01.212 IST [10608] LOG:  creating missing WAL directory "pg_wal/summaries"
+2026-06-12 21:17:01.439 IST [10608] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-06-12 21:17:01.444 IST [10608] LOG:  redo starts at 0/25F8AA8
+2026-06-12 21:17:01.444 IST [10608] LOG:  invalid record length at 0/25F8BB0: expected at least 24, got 0
+2026-06-12 21:17:01.444 IST [10608] LOG:  redo done at 0/25F8B78 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2026-06-12 21:17:01.447 IST [14160] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-06-12 21:17:01.456 IST [14160] LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.002 s, total=0.010 s; sync files=2, longest=0.002 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/25F8BB0, redo lsn=0/25F8BB0
+2026-06-12 21:17:01.462 IST [22460] LOG:  database system is ready to accept connections

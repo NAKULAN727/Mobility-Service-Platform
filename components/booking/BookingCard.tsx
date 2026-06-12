@@ -83,7 +83,7 @@ export default function BookingCard({
             <span>·</span>
             <span>~{booking.location.estimatedDuration} min</span>
             <span>·</span>
-            <span>{booking.bookingType === "VEHICLE_AND_DRIVER" ? "Car + Driver" : "Driver Only"}</span>
+            <span>{booking.serviceType === "CAR_WITH_DRIVER" ? "Car + Driver" : "Driver Only"}</span>
             {booking.payment && (
               <>
                 <span>·</span>

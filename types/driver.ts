@@ -1,10 +1,14 @@
 export interface Driver {
-    id: string;
-    name: string;
-    rating: number;
-    distance: number;
-    eta: number;
-    availability: boolean;
-    acceptanceRate: number;
-    vehicle: string;
+  id: string;
+  fullName?: string;
+  name?: string;
+  rating: number;
+  distance: number;
+  eta: number;
+  acceptanceRate: number;
+  experienceYears?: number;
+  driverType?: "DRIVER_ONLY" | "DRIVER_WITH_VEHICLE";
+  ownsVehicle?: boolean;
+  vehicle?: string;
+  availability?: boolean;
 }

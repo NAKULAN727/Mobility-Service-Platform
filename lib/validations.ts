@@ -6,7 +6,7 @@ const PLATE_REGEX = /^[A-Z0-9-]{3,12}$/i;
 // ── Booking form ──────────────────────────────────────────────────────────────
 export const BookingFormSchema = z
   .object({
-    rideType: z.enum(["VEHICLE_AND_DRIVER", "DRIVER_ONLY"]),
+    serviceType: z.enum(["CAR_WITH_DRIVER", "DRIVER_ONLY"]),
     pickupLocation: z.string().min(5, "Enter a valid pickup address (min 5 chars)"),
     destinationLocation: z.string().min(5, "Enter a valid destination (min 5 chars)"),
     bookingDate: z.string().min(1, "Select a date"),
@@ -21,7 +21,7 @@ export const BookingFormSchema = z
     message: "Destination must differ from pickup",
     path: ["destinationLocation"],
   })
-  .refine((d) => (d.rideType === "VEHICLE_AND_DRIVER" ? !!d.vehicleId : true), {
+  .refine((d) => (d.serviceType === "CAR_WITH_DRIVER" ? !!d.vehicleId : true), {
     message: "Select a vehicle to continue",
     path: ["vehicleId"],
   });
@@ -30,7 +30,8 @@ export type BookingFormValues = z.infer<typeof BookingFormSchema>;
 
 // ── Vehicle admin form ────────────────────────────────────────────────────────
 export const VehicleFormSchema = z.object({
-  vehicleNumber: z.string().regex(PLATE_REGEX, "Enter a valid plate (3-12 alphanumeric chars)"),
+  registrationNumber: z.string().regex(PLATE_REGEX, "Enter a valid plate (3-12 alphanumeric chars)"),
+  make: z.string().optional(),
   vehicleType: z.enum(["SEDAN", "SUV", "LUXURY", "VAN", "HATCHBACK"]),
   model: z.string().min(2, "Model name must be at least 2 characters"),
   seatingCapacity: z.coerce
@@ -48,7 +49,7 @@ export const QuickBookSchema = z
   .object({
     pickupLocation: z.string().min(5, "Enter a valid pickup address"),
     destinationLocation: z.string().min(5, "Enter a valid destination"),
-    rideType: z.enum(["VEHICLE_AND_DRIVER", "DRIVER_ONLY"]),
+    serviceType: z.enum(["CAR_WITH_DRIVER", "DRIVER_ONLY"]),
   })
   .refine((d) => d.pickupLocation.trim() !== d.destinationLocation.trim(), {
     message: "Destination must differ from pickup",
@@ -73,10 +74,10 @@ export const SERVICE_FEE_PCT = 0.05;
 export function calculateFare(
   distanceKm: number,
   vehicleType: string,
-  rideType: "VEHICLE_AND_DRIVER" | "DRIVER_ONLY"
+  serviceType: "CAR_WITH_DRIVER" | "DRIVER_ONLY"
 ) {
   const ratePerKm =
-    rideType === "VEHICLE_AND_DRIVER"
+    serviceType === "CAR_WITH_DRIVER"
       ? (VEHICLE_RATES[vehicleType.toUpperCase()] ?? 3.5)
       : DRIVER_ONLY_RATE;
   const baseFare = BASE_FARE;

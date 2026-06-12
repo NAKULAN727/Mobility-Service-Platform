@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { useAuth } from "../providers";
@@ -24,10 +25,18 @@ const LOGIN_MUTATION = gql`
 `;
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { user, loading: authLoading, login } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.push("/dashboard");
+    }
+  }, [user, authLoading, router]);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const { login } = useAuth();
 
   const [performLogin, { loading }] = useMutation(LOGIN_MUTATION, {
     onCompleted: (data: any) => {

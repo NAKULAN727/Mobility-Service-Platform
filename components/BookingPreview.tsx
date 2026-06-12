@@ -50,7 +50,7 @@ export default function BookingPreview({ booking }: BookingPreviewProps) {
             <Car className="w-5 h-5 text-gray-600 mr-2 shrink-0" />
             <div>
               <p className="text-sm text-gray-500">Ride Type</p>
-              <p className="font-medium text-gray-900">{booking.rideType}</p>
+              <p className="font-medium text-gray-900">{booking.serviceType}</p>
             </div>
           </div>
           

@@ -4,11 +4,11 @@ import FareBreakdown from "./FareBreakdown";
 
 interface FareCardProps {
   result: FareResult;
-  rideType: string;
+  serviceType: string;
   trafficLevel: string;
 }
 
-export default function FareCard({ result, rideType, trafficLevel }: FareCardProps) {
+export default function FareCard({ result, serviceType, trafficLevel }: FareCardProps) {
   const { estimate, explanation, distance, duration } = result;
 
   return (
@@ -32,7 +32,7 @@ export default function FareCard({ result, rideType, trafficLevel }: FareCardPro
       <div className="p-6 bg-gray-50">
         <div className="flex justify-between items-center mb-4 text-sm font-medium text-gray-700">
           <div className="bg-white px-3 py-1 rounded-full shadow-sm border border-gray-200">
-            🚕 {rideType}
+            🚕 {serviceType}
           </div>
           <div className={`px-3 py-1 rounded-full shadow-sm text-white ${
             trafficLevel === 'High' ? 'bg-red-500' : 

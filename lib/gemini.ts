@@ -20,7 +20,7 @@ Return ONLY valid JSON.
   "destination": "",
   "date": "",
   "time": "",
-  "rideType": "",
+  "serviceType": "",
   "passengers": "",
   "specialRequests": ""
 }

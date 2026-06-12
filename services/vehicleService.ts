@@ -110,7 +110,7 @@ export function sortVehicles<T extends { model: string; seatingCapacity: number 
 }
 
 export function filterVehicles<
-  T extends { model: string; vehicleNumber: string; vehicleType: string; availabilityStatus: string }
+  T extends { model: string; registrationNumber: string; vehicleType: string; availabilityStatus: string }
 >(
   vehicles: T[],
   search: string,
@@ -122,7 +122,7 @@ export function filterVehicles<
     const matchSearch =
       !q ||
       v.model.toLowerCase().includes(q) ||
-      v.vehicleNumber.toLowerCase().includes(q);
+      v.registrationNumber.toLowerCase().includes(q);
     const matchType   = typeFilter   === "ALL" || v.vehicleType.toUpperCase()         === typeFilter;
     const matchStatus = statusFilter === "ALL" || v.availabilityStatus.toUpperCase()  === statusFilter;
     return matchSearch && matchType && matchStatus;

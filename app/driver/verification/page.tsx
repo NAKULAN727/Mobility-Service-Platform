@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { useAuth } from "../../providers";
@@ -53,7 +54,15 @@ const DOCUMENTS_TO_UPLOAD: DocConfig[] = [
 ];
 
 export default function DriverVerificationPage() {
+  const router = useRouter();
   const { user, logout, refreshUser, loading: authLoading } = useAuth();
+  
+  useEffect(() => {
+    if (!authLoading && (!user || user.role !== "DRIVER")) {
+      router.push("/login");
+    }
+  }, [user, authLoading, router]);
+
   const [activeUploadType, setActiveUploadType] = useState<DocumentType | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");

@@ -1,5 +1,5 @@
 import React from "react";
-import { STATUS_COLORS } from "../../lib/types";
+import { BOOKING_STATUS_UI_MAP } from "../../lib/types";
 
 interface StatusBadgeProps {
   status: string;
@@ -10,11 +10,11 @@ interface StatusBadgeProps {
 
 /**
  * StatusBadge — Renders a coloured pill badge for any booking or vehicle status.
- * Uses STATUS_COLORS from lib/types for consistent theming across the app.
+ * Uses BOOKING_STATUS_UI_MAP from lib/types for consistent theming across the app.
  */
 export default function StatusBadge({ status, pulse = false, className = "" }: StatusBadgeProps) {
   const key = status.toUpperCase();
-  const colors = STATUS_COLORS[key] ?? {
+  const colors = BOOKING_STATUS_UI_MAP[key] ?? {
     bg: "bg-zinc-800/50",
     text: "text-zinc-500",
     border: "border-zinc-700",

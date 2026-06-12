@@ -57,7 +57,7 @@ export default function VehicleCard({
             </div>
             <div className="flex items-center gap-1.5 justify-end">
               <span className="text-slate-400">Plate:</span>
-              <span className="font-mono font-bold text-slate-600">{vehicle.vehicleNumber}</span>
+              <span className="font-mono font-bold text-slate-600">{vehicle.registrationNumber}</span>
             </div>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 
 const prismaClientSingleton = () => {
-  const connectionString = process.env.DATABASE_URL ?? "postgresql://postgres@localhost:5433/mobility_db";
+  const connectionString = process.env.DATABASE_URL ?? "postgresql://postgres@127.0.0.1:5435/mobility_db";
   const pool = new Pool({ connectionString });
   const adapter = new PrismaPg(pool);
   return new PrismaClient({ adapter });

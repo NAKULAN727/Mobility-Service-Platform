@@ -22,7 +22,7 @@ export async function parseBooking(userInput: string): Promise<Booking | null> {
       destination: parsedData.destination || null,
       date: parsedData.date || null,
       time: parsedData.time || null,
-      rideType: parsedData.rideType || "Standard",
+      serviceType: parsedData.serviceType || "CAR_WITH_DRIVER",
       passengers: parsedData.passengers ? parseInt(parsedData.passengers, 10) || 1 : 1,
       specialRequests: parsedData.specialRequests || null,
     };

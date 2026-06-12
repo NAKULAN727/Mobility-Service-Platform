@@ -1,11 +1,25 @@
 import { Driver } from "../types/driver";
 
-export function calculateDriverScore(driver: Driver): number {
-  // Weights
-  const RATING_WEIGHT = 0.40;
-  const DISTANCE_WEIGHT = 0.25;
-  const ETA_WEIGHT = 0.20;
-  const ACCEPTANCE_WEIGHT = 0.15;
+export function calculateDriverScore(driver: Driver, serviceType?: string): number {
+  // Dynamic Weights based on Service Type
+  let RATING_WEIGHT = 0.40;
+  let DISTANCE_WEIGHT = 0.25;
+  let ETA_WEIGHT = 0.20;
+  let ACCEPTANCE_WEIGHT = 0.15;
+
+  if (serviceType === "DRIVER_ONLY") {
+    // For Driver Only: heavily weight rating and distance (experience is key)
+    RATING_WEIGHT = 0.50;
+    DISTANCE_WEIGHT = 0.30;
+    ETA_WEIGHT = 0.10;
+    ACCEPTANCE_WEIGHT = 0.10;
+  } else if (serviceType === "CAR_WITH_DRIVER") {
+    // For Car + Driver: heavily weight ETA and Vehicle availability
+    RATING_WEIGHT = 0.30;
+    DISTANCE_WEIGHT = 0.20;
+    ETA_WEIGHT = 0.40;
+    ACCEPTANCE_WEIGHT = 0.10;
+  }
 
   // Max expected values for normalization
   const MAX_RATING = 5.0;

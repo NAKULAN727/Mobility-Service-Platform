@@ -5,7 +5,8 @@ export const GET_AVAILABLE_VEHICLES_QUERY = `
   query GetAvailableVehicles($type: VehicleType, $minCapacity: Int, $limit: Int, $offset: Int) {
     getAvailableVehicles(type: $type, minCapacity: $minCapacity, limit: $limit, offset: $offset) {
       id
-      vehicleNumber
+      registrationNumber
+      make
       vehicleType
       model
       seatingCapacity
@@ -20,7 +21,8 @@ export const GET_VEHICLE_BY_ID_QUERY = `
   query GetVehicleById($id: ID!) {
     getVehicleById(id: $id) {
       id
-      vehicleNumber
+      registrationNumber
+      make
       vehicleType
       model
       seatingCapacity
@@ -38,7 +40,7 @@ export const GET_BOOKING_BY_ID_QUERY = `
       customerId
       driverId
       vehicleId
-      bookingType
+      serviceType
       bookingStatus
       bookingDate
       bookingTime
@@ -76,7 +78,7 @@ export const GET_BOOKING_HISTORY_QUERY = `
           customerId
           driverId
           vehicleId
-          bookingType
+          serviceType
           bookingStatus
           bookingDate
           bookingTime
@@ -119,7 +121,7 @@ export const GET_ALL_BOOKINGS_QUERY = `
       customerId
       driverId
       vehicleId
-      bookingType
+      serviceType
       bookingStatus
       bookingDate
       bookingTime
@@ -147,7 +149,7 @@ export const GET_ACTIVE_BOOKINGS_QUERY = `
       id
       customerId
       driverId
-      bookingType
+      serviceType
       bookingStatus
       bookingDate
       bookingTime
@@ -178,8 +180,8 @@ export const GET_PAYMENT_DETAILS_QUERY = `
 `;
 
 export const ESTIMATE_FARE_QUERY = `
-  query EstimateFare($distanceKm: Float!, $vehicleType: VehicleType!, $bookingType: BookingType!) {
-    estimateFare(distanceKm: $distanceKm, vehicleType: $vehicleType, bookingType: $bookingType) {
+  query EstimateFare($distanceKm: Float!, $vehicleType: VehicleType!, $serviceType: ServiceType!) {
+    estimateFare(distanceKm: $distanceKm, vehicleType: $vehicleType, serviceType: $serviceType) {
       baseFare
       distanceFare
       serviceFee
@@ -188,7 +190,7 @@ export const ESTIMATE_FARE_QUERY = `
       distanceKm
       estimatedDurationMin
       vehicleType
-      bookingType
+      serviceType
     }
   }
 `;

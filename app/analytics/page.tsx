@@ -23,13 +23,13 @@ export default function AnalyticsDashboard() {
   useEffect(() => {
     async function loadDashboard() {
       try {
-        // Load raw mock data
+        // Load live analytics from database
         const analyticsData = await fetchAnalyticsData();
         setData(analyticsData);
         setLoading(false);
 
-        // Load Recommendations
-        const recs = await generateRecommendations();
+        // Load Recommendations (admin/platform-wide view, no specific customer)
+        const recs = await generateRecommendations(undefined);
         setRecommendations(recs);
 
         // Load Gemini Insights

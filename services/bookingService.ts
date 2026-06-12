@@ -61,10 +61,10 @@ const DRIVER_ONLY_RATE = 2.0;
 export function calculateFare(
   distKm: number,
   vehicleType: string,
-  bookingType: string
+  serviceType: string
 ): FareBreakdown {
   const ratePerKm =
-    bookingType === "VEHICLE_AND_DRIVER"
+    serviceType === "CAR_WITH_DRIVER"
       ? (VEHICLE_UI_META[vehicleType.toUpperCase()]?.rate ?? 3.5)
       : DRIVER_ONLY_RATE;
 
@@ -102,14 +102,14 @@ export function validateRouteStep(from: string, to: string): ValidationErrors {
 export function validateDetailsStep(
   date: string,
   time: string,
-  bookingType: string,
+  serviceType: string,
   selectedVehicleId: string
 ): ValidationErrors {
   const errors: ValidationErrors = {};
   if (!date) errors.date = "Please select a date";
   if (!time) errors.time = "Please select a time";
   if (!TIME_REGEX.test(time) && time) errors.time = "Time must be in HH:MM format";
-  if (bookingType === "VEHICLE_AND_DRIVER" && !selectedVehicleId)
+  if (serviceType === "CAR_WITH_DRIVER" && !selectedVehicleId)
     errors.vehicle = "Please select a vehicle to continue";
   return errors;
 }
@@ -117,43 +117,46 @@ export function validateDetailsStep(
 // ─── Status Helpers ───────────────────────────────────────────────────────────
 
 export const TRIP_STEPS = [
-  { key: "REQUESTED",  label: "Requested",    desc: "Looking for a driver" },
-  { key: "ACCEPTED",   label: "Driver found", desc: "A driver accepted your ride" },
-  { key: "ARRIVING",   label: "On the way",   desc: "Driver is heading to you" },
-  { key: "ACTIVE",     label: "In ride",      desc: "You're on your way!" },
-  { key: "COMPLETED",  label: "Arrived",      desc: "Trip complete" },
-];
+    { key: "REQUESTED",      label: "Requested",    desc: "Your ride is requested" },
+    { key: "DRIVER_ASSIGNED",label: "Driver found", desc: "A driver accepted your ride" },
+    { key: "DRIVER_ARRIVING",label: "Arriving",     desc: "Driver is on the way" },
+    { key: "TRIP_STARTED",   label: "In ride",      desc: "You're on your way!" },
+    { key: "TRIP_COMPLETED", label: "Completed",    desc: "You've arrived" },
+  ];
 
 export function getTripStepIndex(status: string): number {
   const s = status.toUpperCase();
-  if (["REQUESTED", "MATCHING"].includes(s)) return 0;
-  if (s === "ACCEPTED")              return 1;
-  if (["ARRIVING", "ARRIVED"].includes(s)) return 2;
-  if (s === "ACTIVE")                return 3;
-  if (s === "COMPLETED")             return 4;
+  if (s === "REQUESTED" || s === "MATCHING") return 0;
+  if (s === "DRIVER_ASSIGNED" || s === "ACCEPTED") return 1;
+  if (s === "DRIVER_ARRIVING" || s === "OTP_PENDING" || s === "OTP_VERIFIED") return 2;
+  if (s === "TRIP_STARTED") return 3;
+  if (s === "TRIP_COMPLETED" || s === "REVIEW_PENDING" || s === "CLOSED") return 4;
   return -1;
 }
 
 export function canCancelBooking(status: string): boolean {
-  return !["ACTIVE", "COMPLETED", "CANCELLED", "DISPUTED"].includes(
+  return !["TRIP_COMPLETED", "REVIEW_PENDING", "CLOSED", "CANCELLED", "DISPUTED"].includes(
     status.toUpperCase()
   );
 }
 
 export function getStatusLabel(status: string): string {
-  const labels: Record<string, string> = {
-    DRAFT:      "Draft",
-    REQUESTED:  "Searching",
-    MATCHING:   "Matching",
-    ACCEPTED:   "Accepted",
-    ARRIVING:   "Driver Arriving",
-    ARRIVED:    "Driver Here",
-    ACTIVE:     "In Ride",
-    COMPLETED:  "Completed",
-    CANCELLED:  "Cancelled",
-    DISPUTED:   "Disputed",
+  const statusMap: Record<string, string> = {
+    REQUESTED:       "Requested",
+    MATCHING:        "Finding Driver",
+    DRIVER_ASSIGNED: "Driver Found",
+    ACCEPTED:        "Driver Accepted",
+    DRIVER_ARRIVING: "Driver Arriving",
+    OTP_PENDING:     "Awaiting OTP",
+    OTP_VERIFIED:    "OTP Verified",
+    TRIP_STARTED:    "In Ride",
+    TRIP_COMPLETED:  "Ride Finished",
+    REVIEW_PENDING:  "Pending Review",
+    CLOSED:          "Completed",
+    CANCELLED:       "Cancelled",
+    DISPUTED:        "Disputed",
   };
-  return labels[status.toUpperCase()] ?? status;
+  return statusMap[status.toUpperCase()] ?? status;
 }
 
 // ─── GraphQL Fetch Helper ─────────────────────────────────────────────────────
@@ -174,33 +177,13 @@ export async function gqlFetch<T = any>(
   return res.json();
 }
 
-// ─── Session Storage ──────────────────────────────────────────────────────────
+// ─── Session Storage (deprecated — bookings persisted in PostgreSQL) ──────────
 
-export function persistBookingToSession(booking: any): void {
-  try {
-    const list = JSON.parse(
-      sessionStorage.getItem("mock_booking_history") || "[]"
-    );
-    // Update if exists, otherwise push
-    const idx = list.findIndex((b: any) => b.id === booking.id);
-    if (idx >= 0) {
-      list[idx] = { ...list[idx], ...booking };
-    } else {
-      list.push(booking);
-    }
-    sessionStorage.setItem("mock_booking_history", JSON.stringify(list));
-  } catch (_) {
-    // sessionStorage unavailable (SSR or private mode)
-  }
+export function persistBookingToSession(_booking: any): void {
+  // No-op: booking state is now persisted in the DB via GraphQL mutations.
 }
 
-export function getBookingFromSession(id: string): any | null {
-  try {
-    const list = JSON.parse(
-      sessionStorage.getItem("mock_booking_history") || "[]"
-    );
-    return list.find((b: any) => b.id === id) ?? null;
-  } catch (_) {
-    return null;
-  }
+export function getBookingFromSession(_id: string): any | null {
+  // No-op: use GraphQL getBookingHistory query to retrieve bookings from DB.
+  return null;
 }

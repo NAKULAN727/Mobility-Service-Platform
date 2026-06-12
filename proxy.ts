@@ -19,11 +19,14 @@ export function proxy(request: NextRequest) {
   const tokenCookie = request.cookies.get("token")?.value;
 
   const isAuthPage = pathname === "/login" || pathname === "/register" || pathname === "/forgot-password";
+  const isLandingPage = pathname === "/";
+  const isApiRoute = pathname.startsWith("/api/");
+  const isPublicPage = isAuthPage || isLandingPage || isApiRoute;
+
   const isAdminPage = pathname.startsWith("/admin");
   const isDriverPage = pathname.startsWith("/driver");
-  const isProfilePage = pathname === "/profile";
   
-  const isProtectedPage = isAdminPage || isDriverPage || isProfilePage;
+  const isProtectedPage = !isPublicPage;
 
   if (isProtectedPage) {
     if (!tokenCookie) {
@@ -40,24 +43,18 @@ export function proxy(request: NextRequest) {
     }
 
     if (isAdminPage && payload.role !== "ADMIN") {
-      return NextResponse.redirect(new URL("/profile", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
     if (isDriverPage && payload.role !== "DRIVER") {
-      return NextResponse.redirect(new URL("/profile", request.url));
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
   if (isAuthPage && tokenCookie) {
     const payload = parseJwt(tokenCookie);
     if (payload && payload.exp && Date.now() < payload.exp * 1000) {
-      if (payload.role === "ADMIN") {
-        return NextResponse.redirect(new URL("/admin/drivers", request.url));
-      } else if (payload.role === "DRIVER") {
-        return NextResponse.redirect(new URL("/driver/verification", request.url));
-      } else {
-        return NextResponse.redirect(new URL("/profile", request.url));
-      }
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
@@ -70,6 +67,12 @@ export const config = {
     "/register",
     "/forgot-password",
     "/profile",
+    "/dashboard/:path*",
+    "/booking/:path*",
+    "/bookings/:path*",
+    "/analytics/:path*",
+    "/ai-assistant/:path*",
+    "/chatbot/:path*",
     "/driver/:path*",
     "/admin/:path*",
   ],

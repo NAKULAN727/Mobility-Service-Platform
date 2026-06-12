@@ -1,15 +1,32 @@
 "use server";
 
+import prisma from "./prisma";
 import { SmartRecommendation } from "../types/analytics";
-import { mockUserHistory } from "../data/mockAnalytics";
 
-export async function generateRecommendations(): Promise<SmartRecommendation[]> {
+export async function generateRecommendations(customerId?: string): Promise<SmartRecommendation[]> {
   const recommendations: SmartRecommendation[] = [];
 
+  if (!customerId) {
+    recommendations.push({
+      type: "offer",
+      title: "Welcome to DriveMate",
+      description: "Book your first premium ride today and get 15% off.",
+      actionText: "View Offers"
+    });
+    return recommendations;
+  }
+
   // 1. Habit-based recommendation
+  const bookings = await prisma.booking.findMany({
+    where: { customerId, bookingStatus: "TRIP_COMPLETED" },
+    include: { location: true }
+  });
+
   const destinationCounts: Record<string, number> = {};
-  mockUserHistory.forEach(dest => {
-    destinationCounts[dest] = (destinationCounts[dest] || 0) + 1;
+  bookings.forEach(b => {
+    if (b.location?.destinationLocation) {
+      destinationCounts[b.location.destinationLocation] = (destinationCounts[b.location.destinationLocation] || 0) + 1;
+    }
   });
 
   let mostFrequent = "";
@@ -21,7 +38,7 @@ export async function generateRecommendations(): Promise<SmartRecommendation[]> 
     }
   });
 
-  if (maxCount >= 3) {
+  if (maxCount >= 2) {
     recommendations.push({
       type: "habit",
       title: `Frequent trips to ${mostFrequent}`,
@@ -31,12 +48,15 @@ export async function generateRecommendations(): Promise<SmartRecommendation[]> 
   }
 
   // 2. Promotional Offer
-  const totalRidesThisMonth = mockUserHistory.length; // Just using the mock length
-  if (totalRidesThisMonth >= 5) {
+  const thisMonth = new Date();
+  thisMonth.setDate(1); // naive start of month
+  
+  const ridesThisMonth = bookings.filter(b => b.createdAt >= thisMonth).length;
+  if (ridesThisMonth >= 3) {
     recommendations.push({
       type: "offer",
       title: "Loyalty Discount Unlocked",
-      description: `You have completed ${totalRidesThisMonth} rides this month. Unlock a loyalty discount on your next booking.`,
+      description: `You have completed ${ridesThisMonth} rides this month. Unlock a loyalty discount on your next booking.`,
       actionText: "Claim Discount"
     });
   } else {

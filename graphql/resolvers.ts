@@ -1,17 +1,19 @@
 import {
   VehicleType,
   AvailabilityStatus,
-  BookingType,
+  ServiceType,
   BookingStatus,
   PaymentMethod,
   PaymentStatus,
   Role,
   VerificationStatus,
   DocumentType,
+  DriverType,
 } from "@prisma/client";
 import { GraphQLError } from "graphql";
 import { GraphQLContext, requireAuth, requireRole, hashPassword, comparePassword, signToken } from "../lib/auth";
 import prisma from "../lib/prisma";
+import { analyzeReview } from "../lib/sentimentAnalyzer";
 
 // --- VALIDATION HELPERS ---
 
@@ -45,11 +47,11 @@ function validateBookingInput(input: BookingCreateInput) {
   return errors;
 }
 
-function validateVehicleInput(input: { vehicleNumber: string; seatingCapacity: number }) {
+function validateVehicleInput(input: { registrationNumber: string; seatingCapacity: number }) {
   const errors: Array<{ field: string[]; message: string; code: string }> = [];
 
-  if (!VEHICLE_PLATE_REGEX.test(input.vehicleNumber))
-    errors.push({ field: ["vehicleNumber"], message: "Vehicle number must be a valid alphanumeric registration plate code (3-12 characters)", code: "INVALID_INPUT" });
+  if (!VEHICLE_PLATE_REGEX.test(input.registrationNumber))
+    errors.push({ field: ["registrationNumber"], message: "Registration number must be a valid alphanumeric plate code (3-12 characters)", code: "INVALID_INPUT" });
 
   if (input.seatingCapacity <= 0)
     errors.push({ field: ["seatingCapacity"], message: "Seating capacity must be a positive integer greater than zero", code: "VALIDATION_FAILED" });
@@ -71,7 +73,7 @@ function validatePhone(phone: string): boolean {
 
 interface BookingCreateInput {
   customerId: string;
-  bookingType: BookingType;
+  serviceType: ServiceType;
   vehicleId?: string;
   pickupLocation: string;
   destinationLocation: string;
@@ -83,7 +85,8 @@ interface BookingCreateInput {
 }
 
 interface VehicleCreateInput {
-  vehicleNumber: string;
+  registrationNumber: string;
+  make: string;
   vehicleType: VehicleType;
   model: string;
   seatingCapacity: number;
@@ -91,7 +94,8 @@ interface VehicleCreateInput {
 }
 
 interface VehicleUpdateInput {
-  vehicleNumber?: string;
+  registrationNumber?: string;
+  make?: string;
   vehicleType?: VehicleType;
   model?: string;
   seatingCapacity?: number;
@@ -256,14 +260,14 @@ export const resolvers = {
     // 7. AI-facing: estimate fare before booking
     estimateFare: async (
       _: any,
-      args: { distanceKm: number; vehicleType: string; bookingType: string },
+      args: { distanceKm: number; vehicleType: string; serviceType: string },
       context: GraphQLContext
     ) => {
       const RATES: Record<string, number> = { SEDAN: 3.5, SUV: 4.2, LUXURY: 5.8, VAN: 5.0, HATCHBACK: 2.8 };
       const BASE = 5;
       const SERVICE_PCT = 0.05;
       const distKm = Number(args.distanceKm);
-      const ratePerKm = args.bookingType === "VEHICLE_AND_DRIVER"
+      const ratePerKm = args.serviceType === "CAR_WITH_DRIVER"
         ? (RATES[args.vehicleType.toUpperCase()] ?? 3.5)
         : 2.0;
       const distanceFare = parseFloat((distKm * ratePerKm).toFixed(2));
@@ -279,7 +283,7 @@ export const resolvers = {
         distanceKm: distKm,
         estimatedDurationMin,
         vehicleType: args.vehicleType.toUpperCase(),
-        bookingType: args.bookingType,
+        serviceType: args.serviceType,
       };
     },
 
@@ -349,6 +353,14 @@ export const resolvers = {
 
       return profile;
     },
+
+    getNotifications: async (_parent: any, _args: any, context: GraphQLContext) => {
+      const authUser = requireAuth(context);
+      return prisma.notification.findMany({
+        where: { userId: authUser.userId },
+        orderBy: { createdAt: "desc" },
+      });
+    },
   },
 
   Mutation: {
@@ -359,7 +371,7 @@ export const resolvers = {
 
       const input: BookingCreateInput = {
         customerId: String(args.input.customerId ?? "").trim(),
-        bookingType: args.input.bookingType,
+        serviceType: args.input.serviceType,
         vehicleId: args.input.vehicleId ? String(args.input.vehicleId).trim() : undefined,
         pickupLocation: String(args.input.pickupLocation ?? "").trim(),
         destinationLocation: String(args.input.destinationLocation ?? "").trim(),
@@ -377,11 +389,11 @@ export const resolvers = {
         return await prisma.$transaction(async (tx: any) => {
           let selectedVehicle = null;
 
-          if (input.bookingType === BookingType.VEHICLE_AND_DRIVER) {
+          if (input.serviceType === ServiceType.CAR_WITH_DRIVER) {
             if (!input.vehicleId) {
               return {
                 success: false,
-                errors: [{ field: ["vehicleId"], message: "vehicleId is required for VEHICLE_AND_DRIVER bookings", code: "INVALID_INPUT" }],
+                errors: [{ field: ["vehicleId"], message: "vehicleId is required for CAR_WITH_DRIVER bookings", code: "INVALID_INPUT" }],
                 booking: null,
               };
             }
@@ -416,7 +428,7 @@ export const resolvers = {
           const booking = await tx.booking.create({
             data: {
               customerId: input.customerId,
-              bookingType: input.bookingType,
+              serviceType: input.serviceType,
               vehicleId: selectedVehicle?.id ?? null,
               locationId: location.id,
               bookingDate: new Date(input.bookingDate),
@@ -464,7 +476,7 @@ export const resolvers = {
         };
       }
 
-      if (booking.bookingStatus === BookingStatus.COMPLETED || booking.bookingStatus === BookingStatus.CANCELLED) {
+      if (booking.bookingStatus === BookingStatus.TRIP_COMPLETED || booking.bookingStatus === BookingStatus.CANCELLED || booking.bookingStatus === BookingStatus.CLOSED) {
         return {
           success: false,
           errors: [{ field: [], message: "Cannot cancel a booking that is already completed or cancelled", code: "STATE_TRANSITION_FORBIDDEN" }],
@@ -510,34 +522,18 @@ export const resolvers = {
     acceptBooking: async (_: any, args: { bookingId: string; driverId: string }, context: GraphQLContext) => {
       const { prisma } = context;
       const user = requireRole(context, ["DRIVER", "ADMIN"]);
-
       const bookingId = String(args.bookingId ?? "").trim();
       const driverId = String(args.driverId ?? "").trim();
 
       if (user.role === "DRIVER" && driverId !== user.userId) {
-        return {
-          success: false,
-          errors: [{ field: ["driverId"], message: "You cannot accept a booking on behalf of another driver", code: "UNAUTHORIZED" }],
-          booking: null,
-        };
+        return { success: false, errors: [{ field: ["driverId"], message: "Unauthorized", code: "UNAUTHORIZED" }], booking: null };
       }
 
       const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
-
-      if (!booking) {
-        return {
-          success: false,
-          errors: [{ field: ["bookingId"], message: "Booking not found", code: "NOT_FOUND" }],
-          booking: null,
-        };
-      }
+      if (!booking) return { success: false, errors: [{ field: ["bookingId"], message: "Not found", code: "NOT_FOUND" }], booking: null };
 
       if (booking.bookingStatus !== BookingStatus.REQUESTED && booking.bookingStatus !== BookingStatus.MATCHING) {
-        return {
-          success: false,
-          errors: [{ field: [], message: "Booking is no longer open for acceptance", code: "STATE_TRANSITION_FORBIDDEN" }],
-          booking: null,
-        };
+        return { success: false, errors: [{ field: [], message: "Not open for acceptance", code: "STATE_TRANSITION_FORBIDDEN" }], booking: null };
       }
 
       const updatedBooking = await prisma.booking.update({
@@ -545,56 +541,140 @@ export const resolvers = {
         data: { driverId, bookingStatus: BookingStatus.ACCEPTED },
         include: { location: true, payment: true },
       });
-
+      
+      await prisma.notification.create({
+        data: {
+          userId: booking.customerId,
+          title: "Booking Accepted",
+          message: "A driver has accepted your ride request and is preparing to head to your location.",
+          type: "SUCCESS"
+        }
+      });
+      
       return { success: true, errors: [], booking: updatedBooking };
     },
 
-    // 4. Start trip (validates OTP)
-    startTrip: async (_: any, args: { bookingId: string; otpCode: string }, context: GraphQLContext) => {
+    // 3b. Driver rejects booking
+    rejectBooking: async (_: any, args: { bookingId: string; driverId: string }, context: GraphQLContext) => {
       const { prisma } = context;
       const user = requireRole(context, ["DRIVER", "ADMIN"]);
-
       const bookingId = String(args.bookingId ?? "").trim();
-      const otpCode = String(args.otpCode ?? "").trim();
+      const driverId = String(args.driverId ?? "").trim();
+
+      if (user.role === "DRIVER" && driverId !== user.userId) {
+        return { success: false, errors: [{ field: ["driverId"], message: "Unauthorized", code: "UNAUTHORIZED" }], booking: null };
+      }
 
       const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      if (!booking) return { success: false, errors: [{ field: ["bookingId"], message: "Not found", code: "NOT_FOUND" }], booking: null };
 
-      if (!booking) {
-        return {
-          success: false,
-          errors: [{ field: ["bookingId"], message: "Booking not found", code: "NOT_FOUND" }],
-          booking: null,
-        };
-      }
+      const updatedBooking = await prisma.booking.update({
+        where: { id: booking.id },
+        data: { driverId: null, bookingStatus: BookingStatus.MATCHING },
+        include: { location: true, payment: true },
+      });
+      return { success: true, errors: [], booking: updatedBooking };
+    },
 
-      if (user.role === "DRIVER" && booking.driverId !== user.userId) {
-        return {
-          success: false,
-          errors: [{ field: [], message: "You are not the assigned driver for this trip", code: "UNAUTHORIZED" }],
-          booking: null,
-        };
-      }
-
-      if (booking.bookingStatus !== BookingStatus.ACCEPTED) {
-        return {
-          success: false,
-          errors: [{ field: [], message: "Trip status must be ACCEPTED to start", code: "STATE_TRANSITION_FORBIDDEN" }],
-          booking: null,
-        };
-      }
-
-      if (booking.otpCode !== otpCode) {
-        return {
-          success: false,
-          errors: [{ field: ["otpCode"], message: "Invalid OTP verification code. Access Denied.", code: "VALIDATION_FAILED" }],
-          booking: null,
-        };
+    // 3c. Driver indicates arriving
+    driverArriving: async (_: any, args: { bookingId: string }, context: GraphQLContext) => {
+      const { prisma } = context;
+      const user = requireRole(context, ["DRIVER", "ADMIN"]);
+      const booking = await prisma.booking.findUnique({ where: { id: args.bookingId } });
+      if (!booking || (user.role === "DRIVER" && booking.driverId !== user.userId)) {
+        return { success: false, errors: [{ field: [], message: "Unauthorized", code: "UNAUTHORIZED" }], booking: null };
       }
 
       const updatedBooking = await prisma.booking.update({
         where: { id: booking.id },
-        data: { bookingStatus: BookingStatus.ACTIVE, actualStartTime: new Date() },
+        data: { bookingStatus: BookingStatus.DRIVER_ARRIVING },
         include: { location: true, payment: true },
+      });
+      
+      await prisma.notification.create({
+        data: {
+          userId: booking.customerId,
+          title: "Driver on the way",
+          message: "Your driver is on the way to your pickup location.",
+          type: "INFO"
+        }
+      });
+      
+      return { success: true, errors: [], booking: updatedBooking };
+    },
+
+    // 3d. Driver arrives at pickup
+    arriveAtPickup: async (_: any, args: { bookingId: string }, context: GraphQLContext) => {
+      const { prisma } = context;
+      const user = requireRole(context, ["DRIVER", "ADMIN"]);
+      const booking = await prisma.booking.findUnique({ where: { id: args.bookingId } });
+      if (!booking || (user.role === "DRIVER" && booking.driverId !== user.userId)) {
+        return { success: false, errors: [{ field: [], message: "Unauthorized", code: "UNAUTHORIZED" }], booking: null };
+      }
+
+      const updatedBooking = await prisma.booking.update({
+        where: { id: booking.id },
+        data: { bookingStatus: BookingStatus.OTP_PENDING },
+        include: { location: true, payment: true },
+      });
+      
+      await prisma.notification.create({
+        data: {
+          userId: booking.customerId,
+          title: "Driver Arrived",
+          message: "Your driver has arrived at the pickup location. Please provide your 6-digit PIN to board.",
+          type: "INFO"
+        }
+      });
+      
+      return { success: true, errors: [], booking: updatedBooking };
+    },
+
+    // 4. Verify OTP
+    verifyOTP: async (_: any, args: { bookingId: string; otpCode: string }, context: GraphQLContext) => {
+      const { prisma } = context;
+      const user = requireRole(context, ["DRIVER", "ADMIN"]);
+      const booking = await prisma.booking.findUnique({ where: { id: args.bookingId } });
+
+      if (!booking || (user.role === "DRIVER" && booking.driverId !== user.userId)) {
+        return { success: false, errors: [{ field: [], message: "Unauthorized", code: "UNAUTHORIZED" }], booking: null };
+      }
+
+      if (booking.otpCode !== args.otpCode) {
+        return { success: false, errors: [{ field: ["otpCode"], message: "Invalid OTP", code: "VALIDATION_FAILED" }], booking: null };
+      }
+
+      const updatedBooking = await prisma.booking.update({
+        where: { id: booking.id },
+        data: { bookingStatus: BookingStatus.OTP_VERIFIED },
+        include: { location: true, payment: true },
+      });
+      return { success: true, errors: [], booking: updatedBooking };
+    },
+
+    // 4b. Start Trip
+    startTrip: async (_: any, args: { bookingId: string }, context: GraphQLContext) => {
+      const { prisma } = context;
+      const user = requireRole(context, ["DRIVER", "ADMIN"]);
+      const booking = await prisma.booking.findUnique({ where: { id: args.bookingId } });
+
+      if (!booking || (user.role === "DRIVER" && booking.driverId !== user.userId)) {
+        return { success: false, errors: [{ field: [], message: "Unauthorized", code: "UNAUTHORIZED" }], booking: null };
+      }
+
+      const updatedBooking = await prisma.booking.update({
+        where: { id: booking.id },
+        data: { bookingStatus: BookingStatus.TRIP_STARTED, actualStartTime: new Date() },
+        include: { location: true, payment: true },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: booking.customerId,
+          title: "Trip Started",
+          message: "Your OTP has been verified and your trip has started. Have a safe journey!",
+          type: "SUCCESS"
+        }
       });
 
       return { success: true, errors: [], booking: updatedBooking };
@@ -604,71 +684,43 @@ export const resolvers = {
     completeTrip: async (_: any, args: { bookingId: string }, context: GraphQLContext) => {
       const { prisma } = context;
       const user = requireRole(context, ["DRIVER", "ADMIN"]);
-
       const bookingId = String(args.bookingId ?? "").trim();
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId }, include: { payment: true } });
 
-      const booking = await prisma.booking.findUnique({
-        where: { id: bookingId },
-        include: { payment: true },
-      });
-
-      if (!booking) {
-        return {
-          success: false,
-          errors: [{ field: ["bookingId"], message: "Booking not found", code: "NOT_FOUND" }],
-          booking: null,
-        };
-      }
-
-      if (user.role === "DRIVER" && booking.driverId !== user.userId) {
-        return {
-          success: false,
-          errors: [{ field: [], message: "You are not the assigned driver for this trip", code: "UNAUTHORIZED" }],
-          booking: null,
-        };
-      }
-
-      if (booking.bookingStatus !== BookingStatus.ACTIVE) {
-        return {
-          success: false,
-          errors: [{ field: [], message: "Cannot complete a trip that is not currently active", code: "STATE_TRANSITION_FORBIDDEN" }],
-          booking: null,
-        };
+      if (!booking || (user.role === "DRIVER" && booking.driverId !== user.userId)) {
+        return { success: false, errors: [{ field: [], message: "Unauthorized", code: "UNAUTHORIZED" }], booking: null };
       }
 
       try {
         const updatedBooking = await prisma.$transaction(async (tx: any) => {
           if (booking.vehicleId) {
-            await tx.vehicle.update({
-              where: { id: booking.vehicleId },
-              data: { availabilityStatus: AvailabilityStatus.AVAILABLE },
-            });
+            await tx.vehicle.update({ where: { id: booking.vehicleId }, data: { availabilityStatus: AvailabilityStatus.AVAILABLE } });
           }
-
           if (booking.payment?.paymentStatus === PaymentStatus.PENDING) {
             await tx.payment.update({
               where: { id: booking.payment.id },
-              data: {
-                paymentStatus: PaymentStatus.SUCCESS,
-                transactionId: `${booking.payment.paymentMethod}-TX-${Math.floor(100000 + Math.random() * 900000)}`,
-              },
+              data: { paymentStatus: PaymentStatus.SUCCESS, transactionId: `${booking.payment.paymentMethod}-TX-${Math.floor(100000 + Math.random() * 900000)}` },
             });
           }
-
           return tx.booking.update({
             where: { id: booking.id },
-            data: { bookingStatus: BookingStatus.COMPLETED, actualEndTime: new Date() },
+            data: { bookingStatus: BookingStatus.TRIP_COMPLETED, actualEndTime: new Date() },
             include: { location: true, payment: true },
           });
         });
-
+        
+        await prisma.notification.create({
+          data: {
+            userId: booking.customerId,
+            title: "Trip Completed",
+            message: "You have reached your destination. Please leave a review for your driver.",
+            type: "SUCCESS"
+          }
+        });
+        
         return { success: true, errors: [], booking: updatedBooking };
       } catch (error) {
-        return {
-          success: false,
-          errors: [{ field: [], message: (error as Error).message, code: "VALIDATION_FAILED" }],
-          booking: null,
-        };
+        return { success: false, errors: [{ field: [], message: (error as Error).message, code: "VALIDATION_FAILED" }], booking: null };
       }
     },
 
@@ -725,7 +777,8 @@ export const resolvers = {
       requireRole(context, ["ADMIN", "FLEET_MANAGER"]);
 
       const input: VehicleCreateInput = {
-        vehicleNumber: String(args.input.vehicleNumber ?? "").trim().toUpperCase(),
+        registrationNumber: String(args.input.registrationNumber ?? "").trim().toUpperCase(),
+        make: String(args.input.make ?? "").trim(),
         vehicleType: args.input.vehicleType,
         model: String(args.input.model ?? "").trim(),
         seatingCapacity: Number(args.input.seatingCapacity),
@@ -738,7 +791,8 @@ export const resolvers = {
       try {
         const vehicle = await prisma.vehicle.create({
           data: {
-            vehicleNumber: input.vehicleNumber,
+            registrationNumber: input.registrationNumber,
+            make: input.make,
             vehicleType: input.vehicleType,
             model: input.model,
             seatingCapacity: input.seatingCapacity,
@@ -750,7 +804,7 @@ export const resolvers = {
       } catch (error) {
         return {
           success: false,
-          errors: [{ field: ["vehicleNumber"], message: "Vehicle number registration already exists", code: "DUPLICATE_RESOURCE" }],
+          errors: [{ field: ["registrationNumber"], message: "Vehicle registration number already exists", code: "DUPLICATE_RESOURCE" }],
           vehicle: null,
         };
       }
@@ -764,10 +818,10 @@ export const resolvers = {
       const id = String(args.id ?? "").trim();
       const errors: Array<{ field: string[]; message: string; code: string }> = [];
 
-      if (args.input.vehicleNumber !== undefined) {
-        const cleaned = String(args.input.vehicleNumber).trim().toUpperCase();
+      if (args.input.registrationNumber !== undefined) {
+        const cleaned = String(args.input.registrationNumber).trim().toUpperCase();
         if (!VEHICLE_PLATE_REGEX.test(cleaned)) {
-          errors.push({ field: ["vehicleNumber"], message: "Vehicle number must be a valid alphanumeric registration plate code (3-12 characters)", code: "INVALID_INPUT" });
+          errors.push({ field: ["registrationNumber"], message: "Registration number must be a valid alphanumeric plate code (3-12 characters)", code: "INVALID_INPUT" });
         }
       }
 
@@ -781,7 +835,8 @@ export const resolvers = {
       if (errors.length > 0) return { success: false, errors, vehicle: null };
 
       const updateData: Record<string, unknown> = {};
-      if (args.input.vehicleNumber !== undefined) updateData.vehicleNumber = String(args.input.vehicleNumber).trim().toUpperCase();
+      if (args.input.registrationNumber !== undefined) updateData.registrationNumber = String(args.input.registrationNumber).trim().toUpperCase();
+      if (args.input.make !== undefined) updateData.make = String(args.input.make).trim();
       if (args.input.vehicleType !== undefined) updateData.vehicleType = args.input.vehicleType;
       if (args.input.model !== undefined) updateData.model = String(args.input.model).trim();
       if (args.input.seatingCapacity !== undefined) updateData.seatingCapacity = Number(args.input.seatingCapacity);
@@ -907,7 +962,8 @@ export const resolvers = {
 
     registerDriver: async (
       _parent: any,
-      { fullName, email, phone, password, licenseNumber, experienceYears }: any
+      { fullName, email, phone, password, licenseNumber, experienceYears, driverType, ownsVehicle, vehicleId,
+        vehicleType, vehicleMake, vehicleModel, vehicleRegistrationNumber, vehicleSeatingCapacity }: any
     ) => {
       if (!fullName || fullName.trim().length < 2) {
         throw new GraphQLError("Name must be at least 2 characters long", { extensions: { code: "BAD_USER_INPUT" } });
@@ -928,12 +984,36 @@ export const resolvers = {
         throw new GraphQLError("Experience years cannot be negative", { extensions: { code: "BAD_USER_INPUT" } });
       }
 
+      // Validate vehicle fields when driver owns a vehicle
+      if (ownsVehicle) {
+        if (!vehicleType) throw new GraphQLError("Vehicle type is required", { extensions: { code: "BAD_USER_INPUT" } });
+        if (!vehicleModel) throw new GraphQLError("Vehicle model is required", { extensions: { code: "BAD_USER_INPUT" } });
+        if (!vehicleRegistrationNumber) throw new GraphQLError("Registration number is required", { extensions: { code: "BAD_USER_INPUT" } });
+        if (!vehicleSeatingCapacity || vehicleSeatingCapacity < 1) throw new GraphQLError("Valid seating capacity is required", { extensions: { code: "BAD_USER_INPUT" } });
+      }
+
       const existingUser = await prisma.user.findUnique({ where: { email } });
       if (existingUser) {
         throw new GraphQLError("Email is already registered", { extensions: { code: "BAD_USER_INPUT" } });
       }
 
       const hashedPassword = await hashPassword(password);
+
+      // Create vehicle record first if driver owns a vehicle
+      let resolvedVehicleId = vehicleId ?? null;
+      if (ownsVehicle && !vehicleId) {
+        const vehicle = await prisma.vehicle.create({
+          data: {
+            registrationNumber: vehicleRegistrationNumber,
+            make: vehicleMake || null,
+            vehicleType: vehicleType as any,
+            model: vehicleModel,
+            seatingCapacity: vehicleSeatingCapacity,
+            availabilityStatus: "AVAILABLE" as any,
+          },
+        });
+        resolvedVehicleId = vehicle.id;
+      }
 
       const user = await prisma.user.create({
         data: {
@@ -947,6 +1027,9 @@ export const resolvers = {
             create: {
               licenseNumber,
               experienceYears,
+              driverType,
+              ownsVehicle,
+              vehicleId: resolvedVehicleId,
               availabilityStatus: true,
               verificationStatus: VerificationStatus.PENDING,
             },
@@ -1116,6 +1199,96 @@ export const resolvers = {
 
       return true;
     },
+
+    toggleDriverAvailability: async (_parent: any, _args: any, context: GraphQLContext) => {
+      const authUser = requireDriver(context);
+
+      const profile = await prisma.driverProfile.findUnique({
+        where: { userId: authUser.userId },
+      });
+
+      if (!profile) {
+        throw new GraphQLError("Driver profile not found", { extensions: { code: "NOT_FOUND" } });
+      }
+
+      return prisma.driverProfile.update({
+        where: { id: profile.id },
+        data: { availabilityStatus: !profile.availabilityStatus },
+      });
+    },
+
+    submitReview: async (
+      _parent: any,
+      { bookingId, rating, reviewText }: { bookingId: string; rating: number; reviewText: string },
+      context: GraphQLContext
+    ) => {
+      requireAuth(context);
+
+      const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
+      if (!booking) {
+        return {
+          success: false,
+          errors: [{ field: ["bookingId"], message: "Booking not found", code: "NOT_FOUND" }],
+          review: null,
+        };
+      }
+
+      try {
+        const analysis = await analyzeReview(reviewText);
+
+        const createdReview = await prisma.review.create({
+          data: {
+            bookingId,
+            rating,
+            reviewText,
+            sentiment: analysis.sentiment,
+            confidence: analysis.confidence,
+            keywords: analysis.keywords,
+            summary: analysis.summary,
+          },
+        });
+
+        return {
+          success: true,
+          errors: [],
+          review: createdReview,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          errors: [{ field: [], message: (error as Error).message, code: "VALIDATION_FAILED" }],
+          review: null,
+        };
+      }
+    },
+
+    markNotificationRead: async (_parent: any, { id }: { id: string }, context: GraphQLContext) => {
+      const authUser = requireAuth(context);
+      const notification = await prisma.notification.findUnique({ where: { id } });
+      
+      if (!notification || notification.userId !== authUser.userId) {
+        return false;
+      }
+      
+      await prisma.notification.update({
+        where: { id },
+        data: { read: true }
+      });
+      return true;
+    },
+
+    markAllNotificationsRead: async (_parent: any, _args: any, context: GraphQLContext) => {
+      const authUser = requireAuth(context);
+      await prisma.notification.updateMany({
+        where: { userId: authUser.userId, read: false },
+        data: { read: true }
+      });
+      return true;
+    }
+  },
+
+  Notification: {
+    createdAt: (parent: any) => parent.createdAt.toISOString(),
   },
 
   User: {
@@ -1154,6 +1327,9 @@ export const resolvers = {
     },
     payment: async (parent: any, _: any, context: GraphQLContext) => {
       return context.prisma.payment.findUnique({ where: { bookingId: parent.id } });
+    },
+    review: async (parent: any, _: any, context: GraphQLContext) => {
+      return context.prisma.review.findUnique({ where: { bookingId: parent.id } });
     },
   },
 };

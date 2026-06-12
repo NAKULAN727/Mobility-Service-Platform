@@ -3,7 +3,7 @@ export interface Booking {
   destination: string | null;
   date: string | null;
   time: string | null;
-  rideType: string | null;
+  serviceType: string | null;
   passengers: number;
   specialRequests: string | null;
 }
