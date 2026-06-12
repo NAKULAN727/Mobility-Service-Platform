@@ -49,10 +49,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function getDashboardPath(role: string) {
-  if (role === "ADMIN") return "/admin/drivers";
-  if (role === "DRIVER") return "/driver/verification";
-  return "/profile";
+function getDashboardPath(_role: string) {
+  return "/dashboard";
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

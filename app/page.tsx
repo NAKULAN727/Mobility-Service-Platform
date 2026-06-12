@@ -37,7 +37,7 @@ export default function Home() {
         <div className="flex items-center gap-4">
           {user ? (
             <Link
-              href={user.role === "ADMIN" ? "/admin/drivers" : user.role === "DRIVER" ? "/driver/verification" : "/profile"}
+              href="/dashboard"
               className="flex items-center gap-1.5 text-xs bg-black hover:bg-zinc-805 text-white font-bold px-4 py-2 rounded-lg transition-all duration-200"
             >
               Go to Dashboard
