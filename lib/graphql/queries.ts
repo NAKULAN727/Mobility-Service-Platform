@@ -63,6 +63,16 @@ export const GET_BOOKING_BY_ID_QUERY = `
         transactionId
         createdAt
       }
+      driver {
+        id
+        fullName
+        phone
+        profileImage
+      }
+      customer {
+        id
+        fullName
+      }
       createdAt
       updatedAt
     }

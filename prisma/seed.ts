@@ -47,7 +47,7 @@ async function main() {
       phone: "+917777777777",
       password: hashedPassword,
       role: Role.DRIVER,
-      isVerified: false,
+      isVerified: true,
       driverProfile: {
         create: {
           id: "driver-profile-id-123",
@@ -56,7 +56,73 @@ async function main() {
           driverType: DriverType.DRIVER_WITH_VEHICLE,
           ownsVehicle: true,
           availabilityStatus: true,
-          verificationStatus: VerificationStatus.PENDING,
+          verificationStatus: VerificationStatus.APPROVED,
+        },
+      },
+    },
+  });
+
+  const driverOnly1 = await prisma.user.create({
+    data: {
+      id: "driver-only-001",
+      fullName: "Rajesh Kumar",
+      email: "rajesh@drivemate.com",
+      phone: "+916666666661",
+      password: hashedPassword,
+      role: Role.DRIVER,
+      isVerified: true,
+      driverProfile: {
+        create: {
+          licenseNumber: "TN-12-2019-0012345",
+          experienceYears: 8,
+          driverType: DriverType.DRIVER_ONLY,
+          ownsVehicle: false,
+          availabilityStatus: true,
+          verificationStatus: VerificationStatus.APPROVED,
+        },
+      },
+    },
+  });
+
+  const driverOnly2 = await prisma.user.create({
+    data: {
+      id: "driver-only-002",
+      fullName: "Suresh Menon",
+      email: "suresh@drivemate.com",
+      phone: "+916666666662",
+      password: hashedPassword,
+      role: Role.DRIVER,
+      isVerified: true,
+      driverProfile: {
+        create: {
+          licenseNumber: "TN-09-2020-0098765",
+          experienceYears: 5,
+          driverType: DriverType.DRIVER_ONLY,
+          ownsVehicle: false,
+          availabilityStatus: true,
+          verificationStatus: VerificationStatus.APPROVED,
+        },
+      },
+    },
+  });
+
+  const driverWithCar = await prisma.user.create({
+    data: {
+      id: "driver-car-001",
+      fullName: "Arun Prakash",
+      email: "arun@drivemate.com",
+      phone: "+916666666663",
+      password: hashedPassword,
+      role: Role.DRIVER,
+      isVerified: true,
+      driverProfile: {
+        create: {
+          licenseNumber: "KA-03-2018-0045678",
+          experienceYears: 10,
+          driverType: DriverType.DRIVER_WITH_VEHICLE,
+          ownsVehicle: true,
+          availabilityStatus: true,
+          verificationStatus: VerificationStatus.APPROVED,
         },
       },
     },
@@ -105,6 +171,16 @@ async function main() {
       seatingCapacity: 12,
       availabilityStatus: AvailabilityStatus.AVAILABLE,
     },
+  });
+
+  // Link vehicles to driver profiles
+  await prisma.driverProfile.update({
+    where: { userId: driver.id },
+    data: { vehicleId: vehicle1.id },
+  });
+  await prisma.driverProfile.update({
+    where: { userId: driverWithCar.id },
+    data: { vehicleId: vehicle4.id },
   });
 
   console.log("Seeding Locations (Routes)...");

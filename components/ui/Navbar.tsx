@@ -16,23 +16,20 @@ export default function Navbar({ activePath }: NavbarProps) {
   const { user, logout, loading } = useAuth();
 
   const baseNavLinks = [
-    { href: "/", label: "Home", hideFromDriver: true },
     { href: "/ai-assistant", label: "AI Assistant", requiresCustomer: true },
-    { href: "/ai-assistant?prompt=" + encodeURIComponent("I need a driver for my own car."), label: "Drive My Car", requiresCustomer: true },
-    { href: "/ai-assistant?prompt=" + encodeURIComponent("I need to book a complete ride with a car and driver."), label: "Car + Driver", requiresCustomer: true },
+    { href: "/manual-booking", label: "Manual Booking", requiresCustomer: true },
     { href: "/bookings", label: "My Trips", requiresCustomer: true },
-    { href: "/analytics", label: "Analytics", hideFromDriver: true },
+    { href: "/analytics", label: "Analytics", requiresCustomer: true },
   ];
 
   const navLinks = baseNavLinks.filter(l => {
     if (l.requiresCustomer && user?.role === "DRIVER") return false;
-    if (l.hideFromDriver && user?.role === "DRIVER") return false;
     return true;
   });
 
   return (
     <div className="fixed top-4 inset-x-0 z-50 w-full px-4">
-      <nav className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between bg-white/80 backdrop-blur-md border border-slate-200/50 rounded-2xl shadow-lg shadow-slate-100/40 transition-all duration-300">
+      <nav className="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between bg-white border border-slate-200 rounded-2xl shadow-md transition-all duration-300">
         {/* Logo */}
         <button
           onClick={() => router.push("/")}
@@ -54,7 +51,7 @@ export default function Navbar({ activePath }: NavbarProps) {
               key={link.href}
               onClick={() => router.push(link.href)}
               className={`text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-semibold ${
-                active.startsWith(link.href)
+                (link.href === "/" ? active === link.href : active.startsWith(link.href))
                   ? "text-slate-900 bg-slate-100/80 font-bold"
                   : "text-slate-650 hover:text-slate-900 hover:bg-slate-50"
               }`}
@@ -67,12 +64,29 @@ export default function Navbar({ activePath }: NavbarProps) {
             <span className="text-xs text-slate-400 px-3">Loading...</span>
           ) : user ? (
             <>
-              <button
-                onClick={() => router.push(user.role === "ADMIN" ? "/admin" : "/dashboard")}
-                className="text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-bold text-emerald-700 hover:bg-emerald-50"
-              >
-                Dashboard
-              </button>
+              {user.role === "DRIVER" ? (
+                <>
+                  <button
+                    onClick={() => router.push("/driver/dashboard")}
+                    className="text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-bold text-emerald-700 hover:bg-emerald-50"
+                  >
+                    Dashboard
+                  </button>
+                  <button
+                    onClick={() => router.push("/driver/profile")}
+                    className="text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-semibold text-slate-650 hover:text-slate-900 hover:bg-slate-50"
+                  >
+                    Profile
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => router.push("/")}
+                  className="text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-bold text-emerald-700 hover:bg-emerald-50"
+                >
+                  Home
+                </button>
+              )}
               <button
                 onClick={logout}
                 className="text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-semibold text-slate-600 hover:text-red-650 hover:bg-red-50/50"

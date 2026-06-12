@@ -18,6 +18,9 @@ interface DriverProfile {
   userId: string;
   licenseNumber: string;
   experienceYears: number;
+  driverType?: "DRIVER_ONLY" | "DRIVER_WITH_VEHICLE";
+  ownsVehicle?: boolean;
+  vehicleId?: string | null;
   availabilityStatus: boolean;
   verificationStatus: "PENDING" | "APPROVED" | "REJECTED";
   createdAt: string;
@@ -49,8 +52,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function getDashboardPath(_role: string) {
-  return "/dashboard";
+function getDashboardPath(role: string) {
+  return role === "DRIVER" ? "/driver/dashboard" : "/";
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

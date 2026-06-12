@@ -19,6 +19,12 @@ const LOGIN_MUTATION = gql`
         role
         profileImage
         isVerified
+        driverProfile {
+          id userId licenseNumber experienceYears driverType
+          ownsVehicle vehicleId availabilityStatus verificationStatus
+          createdAt updatedAt
+          documents { id driverId documentType documentUrl uploadedAt }
+        }
       }
     }
   }
@@ -30,7 +36,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/dashboard");
+      router.push(user.role === "DRIVER" ? "/driver/dashboard" : "/");
     }
   }, [user, authLoading, router]);
 

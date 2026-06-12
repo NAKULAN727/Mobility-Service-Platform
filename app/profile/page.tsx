@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation } from "@apollo/client/react";
 import { gql } from "@apollo/client";
 import { useAuth } from "../providers";
@@ -28,7 +29,14 @@ const CHANGE_PASSWORD = gql`
 `;
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { user, logout, refreshUser, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user?.role === "DRIVER") {
+      router.replace("/driver/profile");
+    }
+  }, [user, authLoading, router]);
   
   // Profile edit state
   const [fullName, setFullName] = useState("");
@@ -79,7 +87,7 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  if (authLoading || !user) {
+  if (authLoading || !user || user.role === "DRIVER") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-zinc-50 text-zinc-900">
         <Loader2 className="h-6 w-6 animate-spin text-zinc-900" />
@@ -177,11 +185,6 @@ export default function ProfilePage() {
           <Link href="/profile" className="text-black border-b-2 border-black pb-1">
             Profile
           </Link>
-          {user.role === "DRIVER" && (
-            <Link href="/driver/verification" className="hover:text-black transition-colors">
-              Driver Portal
-            </Link>
-          )}
           {user.role === "ADMIN" && (
             <Link href="/admin/drivers" className="hover:text-black transition-colors">
               Verification Desk
@@ -208,11 +211,6 @@ export default function ProfilePage() {
         <Link href="/profile" className="text-black">
           Profile
         </Link>
-        {user.role === "DRIVER" && (
-          <Link href="/driver/verification" className="text-zinc-500 hover:text-black">
-            Driver Portal
-          </Link>
-        )}
         {user.role === "ADMIN" && (
           <Link href="/admin/drivers" className="text-zinc-500 hover:text-black">
             Verifications

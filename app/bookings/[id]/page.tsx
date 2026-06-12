@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import { User } from "lucide-react";
 import { useRouter, useParams } from "next/navigation";
 import Navbar from "../../../components/ui/Navbar";
 import PageLoader from "../../../components/ui/PageLoader";
@@ -214,6 +215,26 @@ function BookingDetailInner() {
         </div>
 
         <div className="flex flex-col gap-4">
+          {/* Driver info — if driver is assigned */}
+          {(booking as any).driver && (
+            <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
+              <div className="h-16 w-16 rounded-full overflow-hidden border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
+                {(booking as any).driver.profileImage ? (
+                  <img src={(booking as any).driver.profileImage} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-7 w-7 text-slate-400" />
+                )}
+              </div>
+              <div className="flex-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Driver</p>
+                <p className="font-black text-slate-900">{(booking as any).driver.fullName}</p>
+                {(booking as any).driver.phone && (
+                  <p className="text-xs text-slate-500 mt-0.5">{(booking as any).driver.phone}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* OTP Card — only for active bookings */}
           {isLive && booking.otpCode && (
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center justify-between shadow-sm">

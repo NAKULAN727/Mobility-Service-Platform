@@ -14,6 +14,7 @@ import { GraphQLError } from "graphql";
 import { GraphQLContext, requireAuth, requireRole, hashPassword, comparePassword, signToken } from "../lib/auth";
 import prisma from "../lib/prisma";
 import { analyzeReview } from "../lib/sentimentAnalyzer";
+import { fetchAvailableDrivers, validateDriverForManualBooking } from "../lib/availableDriversService";
 
 // --- VALIDATION HELPERS ---
 
@@ -82,6 +83,10 @@ interface BookingCreateInput {
   bookingDate: string;
   bookingTime: string;
   fareAmount: number;
+}
+
+interface ManualBookingCreateInput extends BookingCreateInput {
+  driverId: string;
 }
 
 interface VehicleCreateInput {
@@ -287,15 +292,48 @@ export const resolvers = {
       };
     },
 
-    // 8. AI-facing: get all active bookings
+    // 8. Active bookings for driver/customer dashboards
     getActiveBookings: async (_: any, __: any, context: GraphQLContext) => {
       requireAuth(context);
       return context.prisma.booking.findMany({
         where: {
-          bookingStatus: { in: ["REQUESTED", "MATCHING", "ACCEPTED", "ARRIVING", "ARRIVED", "ACTIVE"] },
+          bookingStatus: {
+            in: [
+              BookingStatus.REQUESTED,
+              BookingStatus.MATCHING,
+              BookingStatus.PENDING_DRIVER_ACCEPTANCE,
+              BookingStatus.DRIVER_ASSIGNED,
+              BookingStatus.ACCEPTED,
+              BookingStatus.DRIVER_ARRIVING,
+              BookingStatus.OTP_PENDING,
+              BookingStatus.OTP_VERIFIED,
+              BookingStatus.TRIP_STARTED,
+            ],
+          },
         },
         orderBy: { createdAt: "desc" },
         include: { location: true, payment: true },
+      });
+    },
+
+    getAvailableDrivers: async (
+      _: any,
+      args: {
+        serviceType: ServiceType;
+        pickupLocation?: string;
+        destinationLocation?: string;
+        distanceKm?: number;
+        estimatedDurationMin?: number;
+      },
+      context: GraphQLContext
+    ) => {
+      requireRole(context, ["CUSTOMER", "ADMIN"]);
+      return fetchAvailableDrivers({
+        serviceType: args.serviceType,
+        pickupLocation: args.pickupLocation,
+        destinationLocation: args.destinationLocation,
+        distanceKm: args.distanceKm,
+        estimatedDurationMin: args.estimatedDurationMin,
       });
     },
 
@@ -451,6 +489,101 @@ export const resolvers = {
       }
     },
 
+    createManualBooking: async (_: any, args: { input: ManualBookingCreateInput }, context: GraphQLContext) => {
+      const { prisma } = context;
+      const authUser = requireRole(context, ["CUSTOMER", "ADMIN"]);
+
+      const input: ManualBookingCreateInput = {
+        customerId: String(args.input.customerId ?? "").trim(),
+        driverId: String(args.input.driverId ?? "").trim(),
+        serviceType: args.input.serviceType,
+        pickupLocation: String(args.input.pickupLocation ?? "").trim(),
+        destinationLocation: String(args.input.destinationLocation ?? "").trim(),
+        distance: Number(args.input.distance),
+        estimatedDuration: Number(args.input.estimatedDuration),
+        bookingDate: String(args.input.bookingDate ?? "").trim(),
+        bookingTime: String(args.input.bookingTime ?? "").trim(),
+        fareAmount: Number(args.input.fareAmount),
+      };
+
+      if (authUser.role === "CUSTOMER" && input.customerId !== authUser.userId) {
+        return {
+          success: false,
+          errors: [{ field: ["customerId"], message: "Unauthorized", code: "UNAUTHORIZED" }],
+          booking: null,
+        };
+      }
+
+      const validationErrors = validateBookingInput(input);
+      if (validationErrors.length > 0) return { success: false, errors: validationErrors, booking: null };
+
+      const driverCheck = await validateDriverForManualBooking(input.driverId, input.serviceType);
+      if (!driverCheck.ok) {
+        return {
+          success: false,
+          errors: [{ field: ["driverId"], message: driverCheck.message ?? "Invalid driver", code: "INVALID_INPUT" }],
+          booking: null,
+        };
+      }
+
+      try {
+        return await prisma.$transaction(async (tx: any) => {
+          if (input.serviceType === ServiceType.CAR_WITH_DRIVER && driverCheck.vehicleId) {
+            await tx.vehicle.update({
+              where: { id: driverCheck.vehicleId },
+              data: { availabilityStatus: AvailabilityStatus.BOOKED },
+            });
+          }
+
+          const location = await tx.location.create({
+            data: {
+              pickupLocation: input.pickupLocation,
+              destinationLocation: input.destinationLocation,
+              distance: input.distance,
+              estimatedDuration: input.estimatedDuration,
+            },
+          });
+
+          const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+          const booking = await tx.booking.create({
+            data: {
+              customerId: input.customerId,
+              driverId: input.driverId,
+              serviceType: input.serviceType,
+              vehicleId: driverCheck.vehicleId ?? null,
+              locationId: location.id,
+              bookingDate: new Date(input.bookingDate),
+              bookingTime: input.bookingTime,
+              fareAmount: input.fareAmount,
+              bookingStatus: BookingStatus.PENDING_DRIVER_ACCEPTANCE,
+              otpCode,
+            },
+            include: { location: true, payment: true },
+          });
+
+          const customer = await tx.user.findUnique({ where: { id: input.customerId } });
+
+          await tx.notification.create({
+            data: {
+              userId: input.driverId,
+              title: "New Ride Request",
+              message: `${customer?.fullName ?? "A customer"} requested a ride from ${input.pickupLocation} to ${input.destinationLocation}.`,
+              type: "INFO",
+            },
+          });
+
+          return { success: true, errors: [], booking };
+        });
+      } catch (error) {
+        return {
+          success: false,
+          errors: [{ field: [], message: (error as Error).message, code: "VALIDATION_FAILED" }],
+          booking: null,
+        };
+      }
+    },
+
     // 2. Cancel booking
     cancelBooking: async (_: any, args: { bookingId: string; reason?: string }, context: GraphQLContext) => {
       const { prisma } = context;
@@ -532,8 +665,17 @@ export const resolvers = {
       const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       if (!booking) return { success: false, errors: [{ field: ["bookingId"], message: "Not found", code: "NOT_FOUND" }], booking: null };
 
-      if (booking.bookingStatus !== BookingStatus.REQUESTED && booking.bookingStatus !== BookingStatus.MATCHING) {
+      const isManualPending = booking.bookingStatus === BookingStatus.PENDING_DRIVER_ACCEPTANCE;
+      const isPoolOpen =
+        booking.bookingStatus === BookingStatus.REQUESTED ||
+        booking.bookingStatus === BookingStatus.MATCHING;
+
+      if (!isManualPending && !isPoolOpen) {
         return { success: false, errors: [{ field: [], message: "Not open for acceptance", code: "STATE_TRANSITION_FORBIDDEN" }], booking: null };
+      }
+
+      if (isManualPending && booking.driverId !== driverId) {
+        return { success: false, errors: [{ field: ["driverId"], message: "This request was sent to another driver", code: "UNAUTHORIZED" }], booking: null };
       }
 
       const updatedBooking = await prisma.booking.update({
@@ -546,7 +688,7 @@ export const resolvers = {
         data: {
           userId: booking.customerId,
           title: "Booking Accepted",
-          message: "A driver has accepted your ride request and is preparing to head to your location.",
+          message: "Your driver has accepted your ride request and is preparing to head to your location.",
           type: "SUCCESS"
         }
       });
@@ -568,11 +710,45 @@ export const resolvers = {
       const booking = await prisma.booking.findUnique({ where: { id: bookingId } });
       if (!booking) return { success: false, errors: [{ field: ["bookingId"], message: "Not found", code: "NOT_FOUND" }], booking: null };
 
-      const updatedBooking = await prisma.booking.update({
-        where: { id: booking.id },
-        data: { driverId: null, bookingStatus: BookingStatus.MATCHING },
-        include: { location: true, payment: true },
-      });
+      const isManualPending = booking.bookingStatus === BookingStatus.PENDING_DRIVER_ACCEPTANCE;
+
+      if (isManualPending && booking.driverId !== driverId) {
+        return { success: false, errors: [{ field: ["driverId"], message: "This request was sent to another driver", code: "UNAUTHORIZED" }], booking: null };
+      }
+
+      let updatedBooking;
+
+      if (isManualPending) {
+        updatedBooking = await prisma.$transaction(async (tx: any) => {
+          if (booking.vehicleId) {
+            await tx.vehicle.update({
+              where: { id: booking.vehicleId },
+              data: { availabilityStatus: AvailabilityStatus.AVAILABLE },
+            });
+          }
+          return tx.booking.update({
+            where: { id: booking.id },
+            data: { bookingStatus: BookingStatus.REJECTED },
+            include: { location: true, payment: true },
+          });
+        });
+
+        await prisma.notification.create({
+          data: {
+            userId: booking.customerId,
+            title: "Driver Declined",
+            message: "The driver declined your request. You can choose another driver or use AI recommendations.",
+            type: "WARNING",
+          },
+        });
+      } else {
+        updatedBooking = await prisma.booking.update({
+          where: { id: booking.id },
+          data: { driverId: null, bookingStatus: BookingStatus.MATCHING },
+          include: { location: true, payment: true },
+        });
+      }
+
       return { success: true, errors: [], booking: updatedBooking };
     },
 
@@ -1330,6 +1506,14 @@ export const resolvers = {
     },
     review: async (parent: any, _: any, context: GraphQLContext) => {
       return context.prisma.review.findUnique({ where: { bookingId: parent.id } });
+    },
+    customer: async (parent: any, _: any, context: GraphQLContext) => {
+      if (!parent.customerId) return null;
+      return context.prisma.user.findUnique({ where: { id: parent.customerId } });
+    },
+    driver: async (parent: any, _: any, context: GraphQLContext) => {
+      if (!parent.driverId) return null;
+      return context.prisma.user.findUnique({ where: { id: parent.driverId } });
     },
   },
 };

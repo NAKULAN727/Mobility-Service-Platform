@@ -30,6 +30,7 @@ enum BookingStatus {
   REQUESTED
   MATCHING
   DRIVER_ASSIGNED
+  PENDING_DRIVER_ACCEPTANCE
   ACCEPTED
   DRIVER_ARRIVING
   OTP_PENDING
@@ -40,6 +41,7 @@ enum BookingStatus {
   CLOSED
   CANCELLED
   DISPUTED
+  REJECTED
 }
 
 enum PaymentMethod {
@@ -94,6 +96,12 @@ enum NotificationType {
   SYSTEM
 }
 
+enum ServiceCapability {
+  DRIVER_ONLY
+  CAR_WITH_DRIVER
+  BOTH
+}
+
 # --- ERROR HANDLING STRATEGY TYPES ---
 
 type UserError {
@@ -142,6 +150,8 @@ type Booking {
   otpCode: String!
   payment: Payment
   review: Review
+  customer: User
+  driver: User
   createdAt: String!
   updatedAt: String!
 }
@@ -222,6 +232,33 @@ type DriverDocument {
   uploadedAt: String!
 }
 
+type AvailableDriverVehicle {
+  id: ID!
+  make: String!
+  model: String!
+  registrationNumber: String!
+  vehicleType: VehicleType!
+}
+
+type AvailableDriver {
+  id: ID!
+  userId: ID!
+  fullName: String!
+  profileImage: String
+  rating: Float!
+  experienceYears: Int!
+  serviceCapability: ServiceCapability!
+  canDriveCustomerVehicle: Boolean!
+  canProvideOwnVehicle: Boolean!
+  vehicle: AvailableDriverVehicle
+  distanceKm: Float!
+  etaMinutes: Int!
+  availabilityStatus: Boolean!
+  priceEstimate: Float!
+  locationHint: String
+  createdAt: String!
+}
+
 type AuthResponse {
   token: String!
   user: User!
@@ -253,6 +290,19 @@ input BookingCreateInput {
   customerId: ID!
   serviceType: ServiceType!
   vehicleId: ID # Optional, selected if CAR_WITH_DRIVER
+  pickupLocation: String!
+  destinationLocation: String!
+  distance: Float!
+  estimatedDuration: Int!
+  bookingDate: String!
+  bookingTime: String!
+  fareAmount: Float!
+}
+
+input ManualBookingCreateInput {
+  customerId: ID!
+  driverId: ID!
+  serviceType: ServiceType!
   pickupLocation: String!
   destinationLocation: String!
   distance: Float!
@@ -346,6 +396,15 @@ type Query {
   # AI-facing: get all active bookings (for AI dispatch)
   getActiveBookings: [Booking!]!
 
+  # Manual booking: browse eligible drivers
+  getAvailableDrivers(
+    serviceType: ServiceType!
+    pickupLocation: String
+    destinationLocation: String
+    distanceKm: Float
+    estimatedDurationMin: Int
+  ): [AvailableDriver!]!
+
   # Member 1 Auth Queries
   me: User
   getUserProfile(userId: ID!): User
@@ -359,6 +418,9 @@ type Query {
 type Mutation {
   # Customer Booking Creation
   createBooking(input: BookingCreateInput!): BookingPayload!
+
+  # Manual booking: request a specific driver
+  createManualBooking(input: ManualBookingCreateInput!): BookingPayload!
 
   # Cancel booking before or during dispatch transition
   cancelBooking(bookingId: ID!, reason: String): BookingPayload!

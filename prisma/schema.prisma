@@ -38,6 +38,7 @@ enum BookingStatus {
   REQUESTED
   MATCHING
   DRIVER_ASSIGNED
+  PENDING_DRIVER_ACCEPTANCE
   ACCEPTED
   DRIVER_ARRIVING
   OTP_PENDING
@@ -48,6 +49,7 @@ enum BookingStatus {
   CLOSED
   CANCELLED
   DISPUTED
+  REJECTED
 }
 
 enum PaymentMethod {

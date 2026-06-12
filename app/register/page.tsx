@@ -33,7 +33,15 @@ const REGISTER_DRIVER = gql`
       vehicleSeatingCapacity: $vehicleSeatingCapacity
     ) {
       token
-      user { id fullName email phone role isVerified }
+      user {
+        id fullName email phone role isVerified
+        driverProfile {
+          id userId licenseNumber experienceYears driverType
+          ownsVehicle vehicleId availabilityStatus verificationStatus
+          createdAt updatedAt
+          documents { id driverId documentType documentUrl uploadedAt }
+        }
+      }
     }
   }
 `;
@@ -55,7 +63,7 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (!authLoading && user) {
-      router.push("/dashboard");
+      router.push(user.role === "DRIVER" ? "/driver/dashboard" : "/");
     }
   }, [user, authLoading, router]);
 

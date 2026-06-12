@@ -15,6 +15,7 @@ export type BookingStatus =
   | "REQUESTED"
   | "MATCHING"
   | "DRIVER_ASSIGNED"
+  | "PENDING_DRIVER_ACCEPTANCE"
   | "ACCEPTED"
   | "DRIVER_ARRIVING"
   | "OTP_PENDING"
@@ -24,7 +25,8 @@ export type BookingStatus =
   | "REVIEW_PENDING"
   | "CLOSED"
   | "CANCELLED"
-  | "DISPUTED";
+  | "DISPUTED"
+  | "REJECTED";
 
 export type PaymentMethod = "UPI" | "CARD" | "CASH";
 export type PaymentStatus = "PENDING" | "SUCCESS" | "FAILED";
