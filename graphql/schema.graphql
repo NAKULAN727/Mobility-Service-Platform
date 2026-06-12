@@ -1,0 +1,278 @@
+# --- CUSTOM ENUMS ---
+
+enum VehicleType {
+  SEDAN
+  SUV
+  LUXURY
+  VAN
+  HATCHBACK
+}
+
+enum AvailabilityStatus {
+  AVAILABLE
+  BOOKED
+  MAINTENANCE
+  OUT_OF_SERVICE
+  DECOMMISSIONED
+}
+
+enum BookingType {
+  DRIVER_ONLY
+  VEHICLE_AND_DRIVER
+}
+
+enum BookingStatus {
+  DRAFT
+  REQUESTED
+  MATCHING
+  ACCEPTED
+  ARRIVING
+  ARRIVED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  DISPUTED
+}
+
+enum PaymentMethod {
+  UPI
+  CARD
+  CASH
+}
+
+enum PaymentStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+enum ErrorCode {
+  UNAUTHORIZED
+  NOT_FOUND
+  INVALID_INPUT
+  VALIDATION_FAILED
+  INSUFFICIENT_FUNDS
+  VEHICLE_UNAVAILABLE
+  DRIVER_REST_PERIOD
+  STATE_TRANSITION_FORBIDDEN
+  DUPLICATE_RESOURCE
+}
+
+# --- ERROR HANDLING STRATEGY TYPES ---
+
+type UserError {
+  field: [String!]!
+  message: String!
+  code: ErrorCode!
+}
+
+# --- ENTITY TYPES ---
+
+type Vehicle {
+  id: ID!
+  vehicleNumber: String!
+  vehicleType: VehicleType!
+  model: String!
+  seatingCapacity: Int!
+  availabilityStatus: AvailabilityStatus!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Location {
+  id: ID!
+  pickupLocation: String!
+  destinationLocation: String!
+  distance: Float!
+  estimatedDuration: Int!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Booking {
+  id: ID!
+  customerId: ID!
+  driverId: ID
+  vehicleId: ID
+  bookingType: BookingType!
+  location: Location!
+  bookingDate: String! # ISO Date string (e.g. YYYY-MM-DD)
+  bookingTime: String! # 24hr Time format (e.g. HH:MM)
+  fareAmount: Float!
+  bookingStatus: BookingStatus!
+  otpCode: String!
+  payment: Payment
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Payment {
+  id: ID!
+  bookingId: ID!
+  amount: Float!
+  paymentMethod: PaymentMethod!
+  paymentStatus: PaymentStatus!
+  transactionId: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+# --- RELAY CURSOR PAGINATION TYPES ---
+
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type BookingEdge {
+  node: Booking!
+  cursor: String!
+}
+
+type BookingConnection {
+  edges: [BookingEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# --- INPUT TYPES ---
+
+input BookingCreateInput {
+  customerId: ID!
+  bookingType: BookingType!
+  vehicleId: ID # Optional, selected if VEHICLE_AND_DRIVER
+  pickupLocation: String!
+  destinationLocation: String!
+  distance: Float!
+  estimatedDuration: Int!
+  bookingDate: String!
+  bookingTime: String!
+  fareAmount: Float!
+}
+
+input VehicleCreateInput {
+  vehicleNumber: String!
+  vehicleType: VehicleType!
+  model: String!
+  seatingCapacity: Int!
+  availabilityStatus: AvailabilityStatus
+}
+
+input VehicleUpdateInput {
+  vehicleNumber: String
+  vehicleType: VehicleType
+  model: String
+  seatingCapacity: Int
+  availabilityStatus: AvailabilityStatus
+}
+
+input PaymentCreateInput {
+  bookingId: ID!
+  amount: Float!
+  paymentMethod: PaymentMethod!
+}
+
+# --- MUTATION RESPONSE PAYLOADS ---
+
+type BookingPayload {
+  success: Boolean!
+  errors: [UserError!]!
+  booking: Booking
+}
+
+type VehiclePayload {
+  success: Boolean!
+  errors: [UserError!]!
+  vehicle: Vehicle
+}
+
+type PaymentPayload {
+  success: Boolean!
+  errors: [UserError!]!
+  payment: Payment
+}
+
+# --- QUERY & MUTATION DEFINITIONS ---
+
+type FareEstimate {
+  baseFare: Float!
+  distanceFare: Float!
+  serviceFee: Float!
+  totalFare: Float!
+  ratePerKm: Float!
+  distanceKm: Float!
+  estimatedDurationMin: Int!
+  vehicleType: String!
+  bookingType: String!
+}
+
+type Query {
+  # Retrieve available vehicles for hiring based on type filter and seating requirements
+  getAvailableVehicles(
+    type: VehicleType
+    minCapacity: Int
+    limit: Int = 10
+    offset: Int = 0
+  ): [Vehicle!]!
+
+  # Retrieve single vehicle by ID
+  getVehicleById(id: ID!): Vehicle
+
+  # Retrieve single booking by ID
+  getBookingById(id: ID!): Booking
+
+  # Retrieve paginated history of bookings for a specific customer or driver (Relay Spec)
+  getBookingHistory(
+    customerId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): BookingConnection!
+
+  # Admin portal retrieval of all bookings
+  getAllBookings(limit: Int = 20, offset: Int = 0): [Booking!]!
+
+  # Retrieve payment details linked with a specific booking
+  getPaymentDetails(bookingId: ID!): Payment
+
+  # AI-facing: estimate fare before booking
+  estimateFare(
+    distanceKm: Float!
+    vehicleType: VehicleType!
+    bookingType: BookingType!
+  ): FareEstimate!
+
+  # AI-facing: get all active bookings (for AI dispatch)
+  getActiveBookings: [Booking!]!
+}
+
+type Mutation {
+  # Customer Booking Creation
+  createBooking(input: BookingCreateInput!): BookingPayload!
+
+  # Cancel booking before or during dispatch transition
+  cancelBooking(bookingId: ID!, reason: String): BookingPayload!
+
+  # Driver accepts offered booking request
+  acceptBooking(bookingId: ID!, driverId: ID!): BookingPayload!
+
+  # Driver begins active ride route (validates OTP input)
+  startTrip(bookingId: ID!, otpCode: String!): BookingPayload!
+
+  # Driver marks destination as reached and completes the ride
+  completeTrip(bookingId: ID!): BookingPayload!
+
+  # Payment Authorization Hold trigger for booking
+  createPayment(input: PaymentCreateInput!): PaymentPayload!
+
+  # Administrative Fleet Management Actions
+  addVehicle(input: VehicleCreateInput!): VehiclePayload!
+  updateVehicle(id: ID!, input: VehicleUpdateInput!): VehiclePayload!
+  deleteVehicle(id: ID!): VehiclePayload!
+
+  # Update the payment status of an existing transaction
+  updatePaymentStatus(paymentId: ID!, status: PaymentStatus!): PaymentPayload!
+}
