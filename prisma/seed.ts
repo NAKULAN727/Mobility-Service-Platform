@@ -1,4 +1,5 @@
-import { PrismaClient, VehicleType, AvailabilityStatus, BookingType, BookingStatus, PaymentMethod, PaymentStatus } from "@prisma/client";
+import { PrismaClient, VehicleType, AvailabilityStatus, BookingType, BookingStatus, PaymentMethod, PaymentStatus, Role, VerificationStatus } from "@prisma/client";
+import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -8,6 +9,57 @@ async function main() {
   await prisma.booking.deleteMany();
   await prisma.location.deleteMany();
   await prisma.vehicle.deleteMany();
+  await prisma.driverDocument.deleteMany();
+  await prisma.driverProfile.deleteMany();
+  await prisma.user.deleteMany();
+
+  console.log("Seeding Users & Drivers...");
+  const hashedPassword = bcrypt.hashSync("password123", 10);
+
+  const admin = await prisma.user.create({
+    data: {
+      id: "admin-id-123",
+      fullName: "System Admin",
+      email: "admin@drivemate.com",
+      phone: "+919999999999",
+      password: hashedPassword,
+      role: Role.ADMIN,
+      isVerified: true,
+    },
+  });
+
+  const customer = await prisma.user.create({
+    data: {
+      id: "customer-id-123",
+      fullName: "Jane Customer",
+      email: "customer@drivemate.com",
+      phone: "+918888888888",
+      password: hashedPassword,
+      role: Role.CUSTOMER,
+      isVerified: true,
+    },
+  });
+
+  const driver = await prisma.user.create({
+    data: {
+      id: "driver-id-123",
+      fullName: "Bob Driver",
+      email: "driver@drivemate.com",
+      phone: "+917777777777",
+      password: hashedPassword,
+      role: Role.DRIVER,
+      isVerified: false,
+      driverProfile: {
+        create: {
+          id: "driver-profile-id-123",
+          licenseNumber: "DL-9876543210",
+          experienceYears: 6,
+          availabilityStatus: true,
+          verificationStatus: VerificationStatus.PENDING,
+        },
+      },
+    },
+  });
 
   console.log("Seeding Vehicles...");
   const vehicle1 = await prisma.vehicle.create({

@@ -103,4 +103,33 @@ export async function OPTIONS() {
   return new Response(null, { status: 204, headers });
 }
 
-export { handleRequest as GET, handleRequest as POST };
+export async function GET(request: NextRequest) {
+  const accept = request.headers.get("accept") || "";
+  if (accept.includes("text/html")) {
+    const url = new URL(request.url);
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8 />
+  <title>Apollo Sandbox - DriveMate</title>
+  <style>body { margin: 0; overflow: hidden; }</style>
+</head>
+<body>
+  <div style="width: 100vw; height: 100vh;" id="sandbox"></div>
+  <script src="https://embeddable-sandbox.lite.apollo.dev/_latest/embeddable-sandbox.umd.production.min.js"></script>
+  <script>
+    new window.EmbeddedSandbox({ target: '#sandbox', initialEndpoint: '${url.protocol}//${url.host}${url.pathname}' });
+  </script>
+</body>
+</html>`;
+    return new Response(html, { headers: { "Content-Type": "text/html" } });
+  }
+  return handleRequest(request);
+}
+
+export async function POST(request: NextRequest) {
+  return handleRequest(request);
+}
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";

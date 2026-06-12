@@ -2,6 +2,7 @@
 
 import React from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { useAuth } from "../../app/providers";
 
 interface NavbarProps {
   /** Override the active link highlight. Defaults to current pathname. */
@@ -12,6 +13,7 @@ export default function Navbar({ activePath }: NavbarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const active = activePath ?? pathname;
+  const { user, logout, loading } = useAuth();
 
   const navLinks = [
     { href: "/bookings", label: "My Rides" },
@@ -44,18 +46,46 @@ export default function Navbar({ activePath }: NavbarProps) {
               className={`text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-semibold ${
                 active.startsWith(link.href)
                   ? "text-slate-900 bg-slate-100/80 font-bold"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  : "text-slate-650 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
               {link.label}
             </button>
           ))}
-          <button
-            onClick={() => router.push("/booking")}
-            className="text-xs sm:text-sm font-black bg-emerald-600 text-white px-5 py-2 rounded-xl hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer ml-1.5 shadow-md shadow-emerald-600/10"
-          >
-            Book a Ride
-          </button>
+          
+          {loading ? (
+            <span className="text-xs text-slate-400 px-3">Loading...</span>
+          ) : user ? (
+            <>
+              <button
+                onClick={() => router.push(user.role === "ADMIN" ? "/admin" : "/dashboard")}
+                className="text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-bold text-emerald-700 hover:bg-emerald-50"
+              >
+                Dashboard
+              </button>
+              <button
+                onClick={logout}
+                className="text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-semibold text-slate-600 hover:text-red-650 hover:bg-red-50/50"
+              >
+                Log Out
+              </button>
+            </>
+          ) : (
+            <>
+              <button
+                onClick={() => router.push("/login")}
+                className="text-xs sm:text-sm px-3.5 py-2 rounded-xl transition-all duration-200 cursor-pointer font-semibold text-slate-650 hover:text-slate-900 hover:bg-slate-50"
+              >
+                Log In
+              </button>
+              <button
+                onClick={() => router.push("/register")}
+                className="text-xs sm:text-sm font-black bg-emerald-600 text-white px-5 py-2 rounded-xl hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 cursor-pointer ml-1.5 shadow-md shadow-emerald-600/10"
+              >
+                Sign Up
+              </button>
+            </>
+          )}
         </div>
       </nav>
     </div>

@@ -1,0 +1,10 @@
+2026-06-12 11:58:15.414 IST [34196] LOG:  starting PostgreSQL 18.3 on x86_64-windows, compiled by msvc-19.44.35223, 64-bit
+2026-06-12 11:58:15.420 IST [34196] LOG:  listening on IPv6 address "::1", port 5433
+2026-06-12 11:58:15.420 IST [34196] LOG:  listening on IPv4 address "127.0.0.1", port 5433
+2026-06-12 11:58:15.497 IST [14228] LOG:  database system was interrupted; last known up at 2026-06-12 11:57:54 IST
+2026-06-12 11:58:15.900 IST [14228] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-06-12 11:58:15.904 IST [14228] LOG:  invalid record length at 0/17F1330: expected at least 24, got 0
+2026-06-12 11:58:15.904 IST [14228] LOG:  redo is not required
+2026-06-12 11:58:15.907 IST [29092] LOG:  checkpoint starting: end-of-recovery immediate wait
+2026-06-12 11:58:15.915 IST [29092] LOG:  checkpoint complete: wrote 0 buffers (0.0%), wrote 3 SLRU buffers; 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.002 s, total=0.010 s; sync files=2, longest=0.001 s, average=0.001 s; distance=0 kB, estimate=0 kB; lsn=0/17F1330, redo lsn=0/17F1330
+2026-06-12 11:58:15.921 IST [34196] LOG:  database system is ready to accept connections

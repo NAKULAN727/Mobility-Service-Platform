@@ -21,6 +21,7 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  serverExternalPackages: ["bcryptjs", "jsonwebtoken", "@apollo/server", "graphql", "bcrypt"],
 };
 
 export default nextConfig;

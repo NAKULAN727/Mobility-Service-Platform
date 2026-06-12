@@ -1,12 +1,34 @@
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { GraphQLError } from "graphql";
 
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error("JWT_SECRET environment variable is not set");
+const SALT_ROUNDS = 10;
+const JWT_SECRET = process.env.JWT_SECRET || "fallback_super_secret_key_123456789";
+
+export async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, SALT_ROUNDS);
+}
+
+export async function comparePassword(password: string, hash: string): Promise<boolean> {
+  return bcrypt.compare(password, hash);
+}
+
+export interface JWTPayload {
+  userId: string;
+  role: string;
+  email: string;
+}
+
+export function signToken(payload: JWTPayload): string {
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
+}
+
+export function verifyToken(token: string): JWTPayload | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
+  } catch (error) {
+    return null;
   }
-  return secret;
 }
 
 export interface UserContextPayload {
@@ -47,7 +69,7 @@ export function getUserFromHeader(authHeader: string | null): UserContextPayload
 
   // Standard JWT verification
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as any;
+    const decoded = jwt.verify(token, JWT_SECRET) as any;
     if (decoded?.userId && decoded?.role && VALID_ROLES.has(decoded.role)) {
       return { userId: decoded.userId, role: decoded.role };
     }

@@ -1,9 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "../components/ui/Navbar";
 import VehicleIcon from "../components/vehicles/VehicleIcon";
+import { Shield, Car, Clock, UserPlus, CheckCircle, ArrowRight } from "lucide-react";
 
 const QUICK_ROUTES = [
   { label: "Airport → City", from: "JFK International Airport, New York", to: "Times Square, Manhattan, NY", dist: 28.5, dur: 45, fare: 105 },
@@ -13,9 +14,22 @@ const QUICK_ROUTES = [
 
 export default function HomePage() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"RIDE" | "DRIVER" | "RENTALS">("RIDE");
+
+  const handleBookNow = () => {
+    const pickup = encodeURIComponent("Forum Mall, Koramangala");
+    const dest = encodeURIComponent("MG Road Metro Station");
+    const type = activeTab === "RIDE" ? "SEDAN" : activeTab === "DRIVER" ? "DRIVER_ONLY" : "SUV";
+    router.push(`/booking?from=${pickup}&to=${dest}&vehicleType=${type}`);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden font-sans flex flex-col">
+
+      {/* COVID-19 Safety Banner */}
+      <div className="bg-slate-950 text-white text-center py-2 px-4 text-xs font-semibold tracking-wider z-50">
+        COVID-19 Safety Protocol: All drivers are fully vaccinated and wear masks.
+      </div>
 
       {/* ─── NAVBAR ─── */}
       <Navbar />
@@ -31,18 +45,18 @@ export default function HomePage() {
         <div className="relative z-10 w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           {/* Left Column — Title & Map Simulation */}
           <div className="lg:col-span-7 flex flex-col gap-8 text-left">
-            <div className="inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200/50 text-emerald-700 text-xs font-bold px-4 py-2 rounded-full w-fit">
+            <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/50 text-emerald-700 text-xs font-bold px-4 py-2 rounded-full w-fit">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse" />
               Drivers available near you now
             </div>
 
             <div className="flex flex-col gap-4">
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-heading font-black leading-[1.05] tracking-tight text-slate-900">
-                Premium dispatch,<br />
-                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">engineered for you.</span>
+                Go anywhere. <br />
+                <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">Book a verified driver.</span>
               </h1>
               <p className="text-base sm:text-lg text-slate-500 max-w-xl leading-relaxed">
-                Book a premium fleet vehicle with a vetted driver or hire a professional chauffeur for your personal vehicle. Fixed rates, secure boarding, and real-time dispatch.
+                Request rides and hire verified, background-checked personal drivers on demand. DriveMate connects you to top-rated mobility professionals with transparent pricing.
               </p>
             </div>
 
@@ -70,31 +84,124 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Right Column — Premium Showcase & Booking CTA */}
-          <div className="lg:col-span-5 w-full">
-            <div className="premium-glass-card p-6 shadow-xl text-left border border-slate-200/50 flex flex-col gap-6">
-              <div className="relative w-full h-60 rounded-2xl overflow-hidden bg-slate-100 border border-slate-200/40 group">
-                <img
-                  src="/premium_fleet.png"
-                  alt="DriveMate Premium Fleet"
-                  className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 via-transparent to-transparent pointer-events-none" />
-                <div className="absolute bottom-4 left-4 text-white font-heading font-black text-sm drop-shadow-md">
-                  DriveMate Premium Fleet
+          {/* Right Column — Uber/Ola Inspired Booking Widget */}
+          <div className="lg:col-span-5 w-full bg-white border border-slate-200/80 rounded-3xl shadow-xl overflow-hidden premium-glass-card">
+            
+            {/* Widget Tabs */}
+            <div className="flex border-b border-slate-100 bg-slate-50/50">
+              <button
+                onClick={() => setActiveTab("RIDE")}
+                className={`flex-1 py-4 text-xs font-black transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === "RIDE" 
+                    ? "bg-white border-b-2 border-emerald-600 text-emerald-700" 
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Car className="h-4 w-4" />
+                Ride
+              </button>
+              <button
+                onClick={() => setActiveTab("DRIVER")}
+                className={`flex-1 py-4 text-xs font-black transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === "DRIVER" 
+                    ? "bg-white border-b-2 border-emerald-600 text-emerald-700" 
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <UserPlus className="h-4 w-4" />
+                Rent Driver
+              </button>
+              <button
+                onClick={() => setActiveTab("RENTALS")}
+                className={`flex-1 py-4 text-xs font-black transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer ${
+                  activeTab === "RENTALS" 
+                    ? "bg-white border-b-2 border-emerald-600 text-emerald-700" 
+                    : "text-slate-500 hover:text-slate-800"
+                }`}
+              >
+                <Clock className="h-4 w-4" />
+                Hourly
+              </button>
+            </div>
+
+            {/* Widget Form Body */}
+            <div className="p-6 space-y-5">
+              <h3 className="font-extrabold text-slate-800 text-base">
+                {activeTab === "RIDE" && "Request a ride now"}
+                {activeTab === "DRIVER" && "Hire a professional driver"}
+                {activeTab === "RENTALS" && "Book car and driver by the hour"}
+              </h3>
+
+              {/* Simulated Address Inputs */}
+              <div className="space-y-3.5 relative">
+                {/* Connector Line */}
+                <div className="absolute left-5 top-8 bottom-8 w-0.5 bg-slate-200 z-0" />
+
+                <div className="relative z-10 flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl p-3">
+                  <div className="h-3 w-3 rounded-full bg-emerald-500 shrink-0 mx-1 shadow-[0_0_0_2px_rgba(16,185,129,0.2)]" />
+                  <input
+                    type="text"
+                    readOnly
+                    value="Forum Mall, Koramangala"
+                    className="bg-transparent text-sm w-full outline-none font-bold text-slate-700"
+                  />
+                </div>
+
+                <div className="relative z-10 flex items-center gap-3 bg-slate-50 border border-slate-200/60 rounded-xl p-3">
+                  <div className="h-3 w-3 rounded bg-rose-500 shrink-0 mx-1 shadow-[0_0_0_2px_rgba(244,63,94,0.2)]" />
+                  <input
+                    type="text"
+                    readOnly
+                    value="MG Road Metro Station"
+                    className="bg-transparent text-sm w-full outline-none font-bold text-slate-700"
+                  />
                 </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <h3 className="font-heading font-black text-slate-800 text-lg">Experience Premium Travel</h3>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Book a premium ride in seconds. Professional drivers, fixed rates, secure boarding PIN verification, and real-time live routing simulation.
-                </p>
+
+              {/* Ride Categories Selector */}
+              <div className="space-y-2 pt-2">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Suggested Options</span>
+                
+                <div className="space-y-2.5">
+                  <div className="flex items-center justify-between p-3 border-2 border-emerald-600 rounded-2xl bg-emerald-50/20 cursor-pointer">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-emerald-100/50 rounded-xl flex items-center justify-center shrink-0 border border-emerald-200/40">
+                        <Car className="h-5 w-5 text-emerald-600" />
+                      </div>
+                      <div>
+                        <span className="font-black text-slate-800 text-sm block">DriveMate Sedan</span>
+                        <span className="text-slate-500 text-xs block">Top rated drivers • 3 mins away</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-slate-900 block text-sm">₹180</span>
+                      <span className="text-[9px] bg-yellow-400 font-bold px-1.5 py-0.5 rounded text-yellow-950 uppercase tracking-wide">Popular</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between p-3 border border-slate-200 hover:border-slate-300 rounded-2xl bg-white cursor-pointer transition-colors group">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 bg-slate-100 rounded-xl flex items-center justify-center shrink-0 group-hover:bg-slate-200 transition-colors">
+                        <Car className="h-5 w-5 text-slate-500" />
+                      </div>
+                      <div>
+                        <span className="font-semibold text-slate-700 text-sm block">DriveMate XL</span>
+                        <span className="text-slate-500 text-xs block">Spacious SUVs • 6 mins away</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="font-black text-slate-700 block text-sm">₹290</span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={() => router.push("/booking")}
-                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm py-4 rounded-xl transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-emerald-600/10 hover:shadow-lg hover:shadow-emerald-600/20 active:scale-[0.99] border-none"
+
+              {/* Booking CTA Button */}
+              <button 
+                onClick={handleBookNow}
+                className="w-full text-center bg-slate-900 hover:bg-slate-850 text-white font-black py-4 rounded-2xl text-sm transition-all duration-200 cursor-pointer active:scale-[0.99]"
               >
-                Book a Ride Now →
+                Book Now with DriveMate
               </button>
             </div>
           </div>
@@ -158,10 +265,10 @@ export default function HomePage() {
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { name: "Sedan",   desc: "4 seats · Daily commute",        price: "From $22",  color: "#059669", type: "SEDAN" },
-              { name: "SUV",     desc: "6 seats · Family trips",          price: "From $35",  color: "#2563eb", type: "SUV" },
-              { name: "Luxury",  desc: "4 seats · Executive travel",      price: "From $60",  color: "#7c3aed", type: "LUXURY" },
-              { name: "Van",     desc: "12 seats · Group travel",         price: "From $55",  color: "#d97706", type: "VAN" },
+              { name: "Sedan",   desc: "4 seats · Daily commute",        price: "From ₹180", color: "#059669", type: "SEDAN" },
+              { name: "SUV",     desc: "6 seats · Family trips",          price: "From ₹290", color: "#2563eb", type: "SUV" },
+              { name: "Luxury",  desc: "4 seats · Executive travel",      price: "From ₹450", color: "#7c3aed", type: "LUXURY" },
+              { name: "Van",     desc: "12 seats · Group travel",         price: "From ₹380", color: "#d97706", type: "VAN" },
             ].map((v) => (
               <div
                 key={v.type}
@@ -185,8 +292,49 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Feature Highlights Grid (Member 1 integration) */}
+      <section className="bg-white border-t border-slate-200 py-24 px-6">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-16">
+            <p className="text-emerald-600 text-xs font-bold uppercase tracking-widest mb-3">Security & Quality</p>
+            <h2 className="text-3xl sm:text-4xl font-heading font-black text-slate-900">Uber & Ola Standards</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
+            <div className="space-y-3 p-5 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-colors border border-slate-200/50">
+              <div className="h-10 w-10 bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center rounded-xl shadow-sm">
+                <Shield className="h-5 w-5" />
+              </div>
+              <h3 className="font-extrabold text-slate-800 text-base">Uber-Grade Verification</h3>
+              <p className="text-slate-550 text-sm leading-relaxed">
+                Every driver undergoes biometric checks, license registry matches, and criminal records reviews.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-5 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-colors border border-slate-200/50">
+              <div className="h-10 w-10 bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center rounded-xl shadow-sm">
+                <Car className="h-5 w-5" />
+              </div>
+              <h3 className="font-extrabold text-slate-800 text-base">Ola-Inspired Category Mix</h3>
+              <p className="text-slate-555 text-sm leading-relaxed">
+                Book budget hatchbacks, executive sedans, hourly personal drivers, or commercial driver-only slots.
+              </p>
+            </div>
+
+            <div className="space-y-3 p-5 rounded-2xl bg-slate-50/50 hover:bg-slate-50 transition-colors border border-slate-200/50">
+              <div className="h-10 w-10 bg-purple-50 border border-purple-200 text-purple-600 flex items-center justify-center rounded-xl shadow-sm">
+                <Clock className="h-5 w-5" />
+              </div>
+              <h3 className="font-extrabold text-slate-800 text-base">Rapido-Style Fast Dispatch</h3>
+              <p className="text-slate-555 text-sm leading-relaxed">
+                Dynamic matching algorithm pairs you instantly with the nearest background-checked driver.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── POPULAR ROUTES ─── */}
-      <section className="py-24 px-6 border-t border-slate-200 bg-white">
+      <section className="py-24 px-6 border-t border-slate-200 bg-slate-50/50">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-emerald-600 text-xs font-bold uppercase tracking-widest mb-3">No guessing</p>
@@ -211,7 +359,7 @@ export default function HomePage() {
                   <div className="flex items-center justify-between pt-3 border-t border-slate-100">
                     <div className="flex flex-col">
                       <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">{r.dist} km · ~{r.dur} min</span>
-                      <span className="text-2xl font-heading font-black text-slate-900 mt-0.5">${r.fare}</span>
+                      <span className="text-2xl font-heading font-black text-slate-900 mt-0.5">₹{r.fare}</span>
                     </div>
                     <button
                       onClick={() => router.push(`/booking?from=${encodeURIComponent(r.from)}&to=${encodeURIComponent(r.to)}`)}
@@ -228,7 +376,7 @@ export default function HomePage() {
       </section>
 
       {/* ─── TRUST SECTION ─── */}
-      <section className="py-24 px-6 border-t border-slate-200 bg-slate-50/50">
+      <section className="py-24 px-6 border-t border-slate-200 bg-white">
         <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
           <div className="lg:col-span-7 flex flex-col gap-6">
             <div>
@@ -242,7 +390,7 @@ export default function HomePage() {
                 { title: "OTP boarding security", body: "A unique 6-digit PIN is required before any trip starts — so only your driver can begin the ride." },
                 { title: "Live location tracking", body: "Share your real-time ride with friends or family. Know exactly where you are at all times." },
               ].map((f, i) => (
-                <div key={i} className="flex items-start gap-4 p-3 hover:bg-white hover:shadow-sm hover:border-slate-200 rounded-2xl border border-transparent transition-all duration-300">
+                <div key={i} className="flex items-start gap-4 p-3 hover:bg-slate-50 hover:shadow-sm hover:border-slate-200 rounded-2xl border border-transparent transition-all duration-300">
                   <div className="w-6 h-6 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
                     <svg className="w-3.5 h-3.5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
@@ -282,10 +430,10 @@ export default function HomePage() {
 
           <div className="relative z-10 flex flex-col gap-3">
             <h2 className="text-3xl sm:text-4xl font-heading font-black text-white">Ready to experience DriveMate?</h2>
-            <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">Book a ride in under 60 seconds with transparent upfront billing. No hidden service charges, no accounts required.</p>
+            <p className="text-slate-400 text-sm max-w-md mx-auto leading-relaxed">Book a ride in under 60 seconds with transparent upfront billing. No surge or hidden service charges.</p>
           </div>
           <div className="relative z-10 flex flex-col sm:flex-row gap-3 justify-center pt-2">
-            <button onClick={() => router.push("/booking")} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-8 py-4 rounded-xl cursor-pointer transition-all duration-200 shadow-lg shadow-emerald-950/20 active:scale-[0.98]">
+            <button onClick={() => router.push("/booking")} className="bg-emerald-600 hover:bg-emerald-700 text-white font-black text-sm px-8 py-4 rounded-xl cursor-pointer transition-all duration-200 shadow-lg shadow-emerald-950/20 active:scale-[0.98] border-none">
               Book a Ride Now
             </button>
             <button onClick={() => router.push("/fare-estimator")} className="bg-slate-800 hover:bg-slate-700 border border-slate-700/60 text-white font-bold text-sm px-8 py-4 rounded-xl cursor-pointer transition-all duration-200 active:scale-[0.98]">
@@ -296,15 +444,18 @@ export default function HomePage() {
       </section>
 
       {/* ─── FOOTER ─── */}
-      <footer className="border-t border-slate-200/60 py-12 px-6 bg-slate-50/50">
+      <footer className="border-t border-slate-200/60 py-12 px-6 bg-slate-50/50 mt-auto">
         <div className="max-w-5xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-sm text-slate-500">
           <div className="flex items-center gap-2.5">
             <div className="w-7 h-7 rounded-xl bg-emerald-600 flex items-center justify-center shadow-md shadow-emerald-600/10">
               <svg className="w-3.5 h-3.5 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99z"/></svg>
             </div>
             <span className="font-heading font-black text-slate-800 text-base tracking-tight">DriveMate</span>
-            <span className="text-xs text-slate-400">© 2026</span>
+            <span className="text-xs text-slate-400">© {new Date().getFullYear()}</span>
           </div>
+          <span className="text-xs text-slate-400 text-center md:text-right">
+            Designed with reference to Uber, Ola, and Rapido design standards.
+          </span>
           <div className="flex gap-6 text-xs font-semibold">
             {["Privacy Policy", "Terms of Use", "Help Support", "Careers"].map(l => (
               <a key={l} href="#" className="hover:text-slate-800 transition-colors">{l}</a>
