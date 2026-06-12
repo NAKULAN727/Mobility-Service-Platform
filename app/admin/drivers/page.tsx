@@ -235,7 +235,7 @@ export default function AdminDriversPage() {
               placeholder="Search by name, email, or license..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="block w-full rounded border border-zinc-200 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+              className="block w-full rounded border border-zinc-200 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
             />
           </div>
 

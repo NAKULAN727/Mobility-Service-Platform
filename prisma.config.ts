@@ -1,9 +1,2 @@
-import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
-
-export default defineConfig({
-  schema: "prisma/schema.prisma",
-  datasource: {
-    url: env("DATABASE_URL"),
-  },
-});
+// Database removed - application uses in-memory store (lib/prisma.ts)
+export {};

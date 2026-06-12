@@ -199,7 +199,7 @@ export default function RegisterPage() {
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     placeholder="John Doe"
                   />
                 </div>
@@ -218,7 +218,7 @@ export default function RegisterPage() {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     placeholder="john@example.com"
                   />
                 </div>
@@ -239,7 +239,7 @@ export default function RegisterPage() {
                     required
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     placeholder="+919876543210"
                   />
                 </div>
@@ -258,7 +258,7 @@ export default function RegisterPage() {
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -281,7 +281,7 @@ export default function RegisterPage() {
                       required
                       value={licenseNumber}
                       onChange={(e) => setLicenseNumber(e.target.value)}
-                      className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                      className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                       placeholder="DL-XXXXXXXX"
                     />
                   </div>
@@ -301,7 +301,7 @@ export default function RegisterPage() {
                       min="0"
                       value={experienceYears}
                       onChange={(e) => setExperienceYears(e.target.value)}
-                      className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                      className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                       placeholder="e.g. 5"
                     />
                   </div>

@@ -1,0 +1,137 @@
+
+> drive-mate@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.9 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://172.17.16.197:3000
+- Environments: .env
+✓ Ready in 472ms
+Creating turbopack project {
+  dir: 'c:\\Users\\Mugunthan\\OneDrive\\Documents\\IP2_Project\\Mobility-Service-Platform',
+  testMode: true
+}
+
+⨯ Error: Cannot find module '@apollo/server'
+    at <unknown> (c:\Users\Mugunthan\OneDrive\Documents\IP2_Project\Mobility-Service-Platform\.next\dev\server\chunks\[root-of-the-server]__0jm802t._.js:912:15)
+    at module evaluation (c:\Users\Mugunthan\OneDrive\Documents\IP2_Project\Mobility-Service-Platform\.next\dev\server\chunks\[root-of-the-server]__0jm802t._.js:915:3)
+    at Object.<anonymous> (c:\Users\Mugunthan\OneDrive\Documents\IP2_Project\Mobility-Service-Platform\.next\dev\server\app\api\graphql\route.js:6:3) {
+  code: 'MODULE_NOT_FOUND',
+  page: '/api/graphql'
+}
+○ Compiling /_error ...
+
+
+
+<--- Last few GCs --->
+
+<--- Last few GCs --->
+
+[43784:000001F1E6A79000]      218 ms: Scavenge 8.7 (11.3) -> 7.4 (11.1) MB, pooled: 0 MB, 2.61 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+#
+
+# Fatal error in , line 0
+[43832:00000205B6879000]      194 ms: Scavenge 8.7 (11.6) -> 7.4 (11.3) MB, pooled: 0 MB, 2.10 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+[43784:000001F1E6A79000]      246 ms: Scavenge 9.5 (12.1) -> 8.9 (17.3) MB, pooled: 0 MB, 1.78 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+# Out of memory: HashMap::Initialize
+
+[43832:00000205B6879000]      248 ms: Scavenge 9.5 (12.1) -> 8.9 (17.1) MB, pooled: 0 MB, 21.74 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+#
+[43832:00000205B6879000]      348 ms: Scavenge 12.6 (17.8) -> 10.8 (18.6) MB, pooled: 0 MB, 3.67 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+#
+FATAL ERROR: MarkCompactCollector: young object promotion failed Allocation failed - JavaScript heap out of memory
+
+#
+----- Native stack trace -----
+FATAL ERROR: MarkCompactCollector: young object promotion failed Allocation failed - JavaScript heap out of memory
+#FailureMessage Object: 000000DD93FFA9A0
+
+----- Native stack trace -----
+----- Native stack trace -----
+
+
+
+<--- Last few GCs --->
+ 1: 00007FF7AB60EF0D 
+
+ 2: 00007FF7ACA622FF 
+[43784:000001F1E6A79000]      218 ms: Scavenge 8.7 (11.3) -> 7.4 (11.1) MB, pooled: 0 MB, 2.61 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+ 3: 00007FF7AC301376 
+[43784:000001F1E6A79000]      246 ms: Scavenge 9.5 (12.1) -> 8.9 (17.3) MB, pooled: 0 MB, 1.78 / 0.00 ms  (average mu = 1.000, current mu = 1.000) allocation failure; 
+ 4: 00007FF7AC300A62 
+
+ 5: 00007FF7AC300890 
+FATAL ERROR: MarkCompactCollector: young object promotion failed Allocation failed - JavaScript heap out of memory
+ 6: 00007FF7ABD88F4F 
+----- Native stack trace -----
+ 7: 00007FF7ABDA9B76 
+
+ 8: 00007FF7ABDC026B 
+ 1: 00007FF7AB6BAD5F 
+ 9: 00007FF7ABDBF43E 
+ 2: 00007FF7AC3032D7 
+10: 00007FF7ABDC5CA2 
+ 3: 00007FF7AC103997 
+11: 00007FF7ABDC26C3 
+ 4: 00007FF7AC0E32AE 
+12: 00007FF7ABDC02B8 
+ 5: 00007FF7AC0D896D 
+13: 00007FF7ABDBF43E 
+ 6: 00007FF7AC0D861C 
+14: 00007FF7ABDBF0F9 
+ 7: 00007FF7AC0D8261 
+15: 00007FF7ABDC86A9 
+ 8: 00007FF7AC0EA758 
+16: 00007FF7ABDC7576 
+17: 00007FF7ABDBEB66 
+ 9: 00007FF7ACAD593F 
+10: 00007FF7AB60ADCE 
+18: 00007FF7ABDC026B 
+11: 00007FF7AC358646 
+19: 00007FF7ABDBF43E 
+12: 00007FF7AD599FB3 
+20: 00007FF7ABDC4E04 
+13: 00007FFC5ECEE957 
+21: 00007FF7ABDC328E 
+14: 00007FFC60327C1C 
+22: 00007FF7ABDC026B 
+23: 00007FF7ABDBF43E 
+24: 00007FF7ABDB9822 
+25: 00007FF7ABDAF3B5 
+26: 00007FF7ABDC0160 
+27: 00007FF7ABDBF484 
+28: 00007FF7ABDBF0F9 
+29: 00007FF7ABDC78C0 
+30: 00007FF7ABDBEB66 
+31: 00007FF7ABDC026B 
+32: 00007FF7ABDBF43E 
+33: 00007FF7ABDD1312 
+34: 00007FF7ABDB0DE5 
+35: 00007FF7ABDB99EB 
+36: 00007FF7ABDB8EEA 
+37: 00007FF7ABDAC5E7 
+38: 00007FF7ABDAB7B4 
+39: 00007FF7ABDAAAA2 
+40: 00007FF7ABDAA74A 
+41: 00007FF7ABDA5D79 
+ 1: 00007FF7AB6BAD5F node::OnFatalError+1343
+42: 00007FF7AC280C7F 
+ 2: 00007FF7AC3032D7 v8::Function::NewInstance+423
+43: 00007FF7AC283A81 
+ 3: 00007FF7AC103997 v8::base::AddressSpaceReservation::AddressSpaceReservation+322071
+44: 00007FF7AC30C793 
+ 4: 00007FF7AC0E32AE v8::base::AddressSpaceReservation::AddressSpaceReservation+189230
+45: 00007FF7AB6D7733 
+ 5: 00007FF7AC0D896D v8::base::AddressSpaceReservation::AddressSpaceReservation+145901
+46: 00007FF7AB6D5ECD 
+ 6: 00007FF7AC0D861C v8::base::AddressSpaceReservation::AddressSpaceReservation+145052
+47: 000001E9C0ECF64D 
+ 7: 00007FF7AC0D8261 v8::base::AddressSpaceReservation::AddressSpaceReservation+144097
+ 8: 00007FF7AC0EA758 v8::base::AddressSpaceReservation::AddressSpaceReservation+219096
+ 9: 00007FF7ACAD593F v8::base::SysInfo::AddressSpaceEnd+3167
+10: 00007FF7AB60ADCE node::GetNodeReport+89326
+11: 00007FF7AC358646 uv_thread_detach+150
+12: 00007FF7AD599FB3 v8::base::UnsignedDivisionByConstant<unsigned __int64>+2903939
+13: 00007FFC5ECEE957 BaseThreadInitThunk+23
+14: 00007FFC60327C1C RtlUserThreadStart+44
+ POST /api/graphql 500 in 35.0s (next.js: 34.6s, application-code: 371ms)

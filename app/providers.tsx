@@ -95,6 +95,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser((queryData as any).me);
       } else {
         setUser(null);
+        handleLogoutLocal();
       }
       setLoading(false);
     }
@@ -129,23 +130,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("token", newToken);
     localStorage.setItem("user", JSON.stringify(newUser));
     document.cookie = `token=${newToken}; path=/; max-age=${24 * 60 * 60}; SameSite=Lax`;
-    
+
     setToken(newToken);
     setUser(newUser);
-    
-    // Clear Apollo cache and refetch me query to update any caching
-    client.clearStore().then(() => {
-      fetchMe();
-      
-      // Perform redirect based on role
-      if (newUser.role === "ADMIN") {
-        router.push("/admin/drivers");
-      } else if (newUser.role === "DRIVER") {
-        router.push("/driver/verification");
-      } else {
-        router.push("/profile");
-      }
-    });
+
+    if (newUser.role === "ADMIN") {
+      router.push("/admin/drivers");
+    } else if (newUser.role === "DRIVER") {
+      router.push("/driver/verification");
+    } else {
+      router.push("/profile");
+    }
   };
 
   const handleLogoutLocal = () => {

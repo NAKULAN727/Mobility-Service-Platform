@@ -314,7 +314,7 @@ export default function ProfilePage() {
                       required
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
-                      className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                      className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     />
                   </div>
                 </div>
@@ -332,7 +332,7 @@ export default function ProfilePage() {
                       required
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
-                      className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                      className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 pl-9 pr-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     />
                   </div>
                 </div>
@@ -384,7 +384,7 @@ export default function ProfilePage() {
                     required
                     value={oldPassword}
                     onChange={(e) => setOldPassword(e.target.value)}
-                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 px-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 px-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     placeholder="••••••••"
                   />
                 </div>
@@ -398,7 +398,7 @@ export default function ProfilePage() {
                     required
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 px-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 px-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     placeholder="Min 6 characters"
                   />
                 </div>
@@ -412,7 +412,7 @@ export default function ProfilePage() {
                     required
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 px-3 text-zinc-800 placeholder-zinc-400 outline-none transition-colors focus:border-black focus:bg-white text-sm"
+                    className="block w-full rounded border border-zinc-205 bg-zinc-50 py-2.5 px-3 text-zinc-800 placeholder-zinc-500 outline-none transition-colors focus:border-black focus:bg-white text-sm"
                     placeholder="••••••••"
                   />
                 </div>

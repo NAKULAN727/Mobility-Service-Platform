@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  serverExternalPackages: ["bcryptjs", "jsonwebtoken", "@apollo/server", "graphql"],
 };
 
 export default nextConfig;

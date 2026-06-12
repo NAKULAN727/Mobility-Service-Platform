@@ -159,7 +159,7 @@ export default function Home() {
                   type="text"
                   placeholder="Enter pickup location"
                   defaultValue="Forum Mall, Koramangala"
-                  className="bg-transparent text-sm w-full outline-none font-semibold text-zinc-800"
+                  className="bg-transparent text-sm w-full outline-none font-semibold text-zinc-800 placeholder-zinc-500"
                 />
               </div>
 
@@ -169,7 +169,7 @@ export default function Home() {
                   type="text"
                   placeholder="Enter destination"
                   defaultValue="MG Road Metro Station"
-                  className="bg-transparent text-sm w-full outline-none font-semibold text-zinc-800"
+                  className="bg-transparent text-sm w-full outline-none font-semibold text-zinc-800 placeholder-zinc-500"
                 />
               </div>
             </div>
